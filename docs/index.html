@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python Flashcards</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0f0f;
+    --card-bg: #1a1a2e;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --code-bg: #0d1117;
+    --accent: #58a6ff;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* Top bar */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(15,15,15,0.92);
+    backdrop-filter: blur(10px);
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid #222;
+  }
+
+  .topbar h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+
+  .topbar h1 span { color: var(--accent); }
+
+  .filters {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+
+  .filters::-webkit-scrollbar { display: none; }
+
+  .filter-btn {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #333;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn:hover { border-color: #555; color: #ccc; }
+  .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .shuffle-btn {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #444;
+    background: #222;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .shuffle-btn:hover { background: #333; }
+
+  /* Card container */
+  .feed {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+  }
+
+  .feed::-webkit-scrollbar { display: none; }
+
+  /* Individual card */
+  .card {
+    height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 90px 20px 40px;
+  }
+
+  .card-inner {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 28px 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+  }
+
+  .card-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+
+  .card-code {
+    background: var(--code-bg);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.5;
+    border: 1px solid #21262d;
+  }
+
+  .card-code code {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    color: #c9d1d9;
+    white-space: pre;
+  }
+
+  .card-takeaway {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    border-top: 1px solid #2a2a3e;
+    padding-top: 14px;
+  }
+
+  .card-takeaway strong { color: var(--accent); }
+
+  .card-counter {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 13px;
+    color: #555;
+    z-index: 100;
+  }
+
+  /* Category colors */
+  .tag-lists       { background: #1e3a5f; color: #58a6ff; }
+  .tag-tuples      { background: #3b2e58; color: #b48eff; }
+  .tag-dicts       { background: #2e4a3e; color: #56d364; }
+  .tag-sets        { background: #4a3a1e; color: #f0b952; }
+  .tag-strings     { background: #4a1e2e; color: #f47067; }
+  .tag-collections { background: #1e4a4a; color: #56d3c4; }
+  .tag-comprehensions { background: #3e3a1e; color: #d4c456; }
+  .tag-itertools   { background: #2e1e4a; color: #c490f5; }
+
+  /* Syntax highlighting (basic) */
+  .kw { color: #ff7b72; }
+  .fn { color: #d2a8ff; }
+  .st { color: #a5d6ff; }
+  .cm { color: #8b949e; }
+  .nu { color: #79c0ff; }
+  .op { color: #ff7b72; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1><span>&#x1F40D;</span> Python Flashcards</h1>
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="lists">Lists</button>
+    <button class="filter-btn" data-filter="tuples">Tuples</button>
+    <button class="filter-btn" data-filter="dicts">Dicts</button>
+    <button class="filter-btn" data-filter="sets">Sets</button>
+    <button class="filter-btn" data-filter="strings">Strings</button>
+    <button class="filter-btn" data-filter="collections">Collections</button>
+    <button class="filter-btn" data-filter="comprehensions">Comps</button>
+    <button class="filter-btn" data-filter="itertools">Itertools</button>
+    <button class="shuffle-btn" id="shuffleBtn">&#x1F500; Shuffle</button>
+  </div>
+</div>
+
+<div class="feed" id="feed"></div>
+<div class="card-counter" id="counter"></div>
+
+<script>
+const cards = [
+  // === LISTS ===
+  {cat:"lists", title:"List: Dynamic Array", code:`nums = [1, 2, 3]\nnums.append(4)    # O(1) amortized\nlen(nums)         # O(1)`, tip:"Python lists are backed by dynamic arrays, not linked lists."},
+  {cat:"lists", title:"Indexing & Slicing", code:`a = [10, 20, 30, 40, 50]\na[0]     # 10\na[-1]    # 50\na[1:3]   # [20, 30]\na[::-1]  # [50, 40, 30, 20, 10]`, tip:"Slicing creates a shallow copy. Negative indices count from the end."},
+  {cat:"lists", title:"append vs insert", code:`arr = [1, 2, 3]\narr.append(4)     # O(1) amortized\narr.insert(0, 0)  # O(n) - shifts all`, tip:"Always prefer append over insert when possible. Front insertion is expensive."},
+  {cat:"lists", title:"pop() vs pop(0)", code:`arr = [1, 2, 3, 4]\narr.pop()    # O(1) - remove last\narr.pop(0)   # O(n) - remove first`, tip:"Need O(1) pop from both ends? Use collections.deque instead."},
+  {cat:"lists", title:"Sorting", code:`data = [3, 1, 4, 1, 5]\nsorted(data)       # new list\ndata.sort()        # in-place, returns None\ndata.sort(key=len) # custom key`, tip:"Timsort: O(n log n), stable sort. sorted() returns new list, .sort() mutates."},
+  {cat:"lists", title:"Stack with list", code:`stack = []\nstack.append(1)  # push\nstack.append(2)\nstack.pop()      # 2 - O(1)`, tip:"Lists make great stacks. append/pop are both O(1)."},
+  {cat:"lists", title:"Shallow vs Deep Copy", code:`import copy\nnested = [[1, 2], [3, 4]]\nshallow = nested[:]          # shared inner\ndeep = copy.deepcopy(nested) # independent`, tip:"Slicing/copy() only copies the outer list. Inner objects are still shared."},
+  {cat:"lists", title:"2D Array Gotcha", code:`# BAD - all rows are same object!\ngrid = [[0]*3] * 3\ngrid[0][0] = 1  # changes ALL rows\n\n# GOOD\ngrid = [[0]*3 for _ in range(3)]`, tip:"[x]*n creates n references to the SAME object. Use comprehension for independent rows."},
+  {cat:"lists", title:"Membership is O(n)", code:`arr = [1, 2, 3, 4, 5]\n3 in arr    # O(n) linear scan\narr.index(3) # O(n)\narr.count(3) # O(n)`, tip:"For frequent membership checks, convert to a set for O(1) lookup."},
+  {cat:"lists", title:"Mutable Default Arg Trap", code:`# BAD\ndef f(lst=[]):\n    lst.append(1)\n    return lst\n# GOOD\ndef f(lst=None):\n    lst = lst if lst is not None else []`, tip:"Default mutable arguments are shared across calls. Always use None as default."},
+
+  // === TUPLES ===
+  {cat:"tuples", title:"Tuple: Immutable Sequence", code:`t = (1, 2, 3)\nsingle = (42,)   # comma required!\nnot_tuple = (42) # just int 42`, tip:"Tuples are immutable and hashable. The trailing comma makes a single-element tuple."},
+  {cat:"tuples", title:"Packing & Unpacking", code:`point = 3, 4, 5          # packing\nx, y, z = point          # unpacking\nfirst, *rest = (1,2,3,4) # extended\na, b = b, a              # swap!`, tip:"Tuple unpacking is one of Python's most powerful features. Use * for the rest."},
+  {cat:"tuples", title:"Tuples as Dict Keys", code:`cache = {}\ncache[(0, 0)] = "start"\ncache[(1, 2)] = "visited"\n# Lists CAN'T be keys (unhashable)`, tip:"Tuples are hashable, so they work as dict keys. Common for grid coordinates and memoization."},
+  {cat:"tuples", title:"Named Tuples", code:`from collections import namedtuple\nPoint = namedtuple("Point", ["x","y"])\np = Point(3, 4)\np.x   # 3\np[0]  # 3 (both work)`, tip:"Named tuples add readability. Access by name or index. Still immutable."},
+  {cat:"tuples", title:"Lexicographic Comparison", code:`(1, 2) < (1, 3)   # True\n(1, 2) < (2, 0)   # True\n# Useful for multi-key sorting:\ndata.sort(key=lambda x: (-x[1], x[0]))`, tip:"Tuples compare element by element. Exploit this for multi-criteria sorting."},
+  {cat:"tuples", title:"Multiple Return Values", code:`def min_max(lst):\n    return min(lst), max(lst)\n\nlo, hi = min_max([3, 1, 4, 1, 5])\n# lo=1, hi=5`, tip:"Functions returning multiple values actually return a tuple that gets unpacked."},
+
+  // === DICTS ===
+  {cat:"dicts", title:"Dict: O(1) Hash Map", code:`d = {"a": 1, "b": 2}\nd["a"]          # O(1) lookup\nd["c"] = 3      # O(1) insert\n"a" in d        # O(1) membership`, tip:"Dicts are the go-to data structure for O(1) lookup by key."},
+  {cat:"dicts", title:".get() Avoids KeyError", code:`d = {"a": 1}\nd["missing"]          # KeyError!\nd.get("missing")      # None\nd.get("missing", 0)   # 0`, tip:"Always use .get() when a key might be missing. Avoids try/except."},
+  {cat:"dicts", title:"setdefault()", code:`d = {}\nd.setdefault("key", []).append(1)\nd.setdefault("key", []).append(2)\n# d = {"key": [1, 2]}`, tip:"setdefault returns the value if key exists, or sets and returns the default."},
+  {cat:"dicts", title:"Counting Pattern", code:`freq = {}\nfor ch in "abracadabra":\n    freq[ch] = freq.get(ch, 0) + 1\n# {'a':5, 'b':2, 'r':2, 'c':1, 'd':1}`, tip:"The .get(key, 0) + 1 pattern is the manual way to count. Counter is cleaner."},
+  {cat:"dicts", title:"Iteration Patterns", code:`d = {"x": 10, "y": 20}\nfor k in d:            # keys\nfor v in d.values():   # values\nfor k, v in d.items(): # both`, tip:".items() is the most common pattern. Keys are iterated in insertion order (3.7+)."},
+  {cat:"dicts", title:"Dict Merge (3.9+)", code:`d1 = {"a": 1, "b": 2}\nd2 = {"b": 3, "c": 4}\nmerged = d1 | d2\n# {'a': 1, 'b': 3, 'c': 4}`, tip:"The | operator merges dicts. Right side wins on key conflicts."},
+  {cat:"dicts", title:"What Can Be a Key?", code:`valid_keys = {\n    42: "int",\n    "key": "str",\n    (1, 2): "tuple",\n    True: "bool",\n}\n# Lists, dicts, sets: NOT hashable`, tip:"Keys must be hashable. Use tuple instead of list for composite keys."},
+
+  // === SETS ===
+  {cat:"sets", title:"Set: O(1) Membership", code:`s = {1, 2, 3}\n2 in s     # O(1) - True\n99 in s    # O(1) - False\n# vs list: O(n) membership`, tip:"Sets exist for O(1) membership testing. Convert lists to sets when checking many values."},
+  {cat:"sets", title:"Empty Set Gotcha", code:`empty_dict = {}       # dict!\nempty_set = set()     # set!\ntype({})              # <class 'dict'>`, tip:"{} creates an empty dict, NOT a set. Always use set() for empty sets."},
+  {cat:"sets", title:"Set Math Operations", code:`a = {1, 2, 3, 4}\nb = {3, 4, 5, 6}\na | b   # union:      {1,2,3,4,5,6}\na & b   # intersect:  {3, 4}\na - b   # difference: {1, 2}\na ^ b   # sym diff:   {1,2,5,6}`, tip:"Set operations are cleaner than manual loops for overlap problems."},
+  {cat:"sets", title:"Subset & Superset", code:`small = {1, 2}\nbig = {1, 2, 3, 4}\nsmall <= big     # True (subset)\nsmall < big      # True (proper)\nbig >= small     # True (superset)`, tip:"Use <= and >= for subset/superset checks. isdisjoint() checks no overlap."},
+  {cat:"sets", title:"Remove Duplicates", code:`# Unordered\nset([1, 2, 2, 3])  # {1, 2, 3}\n\n# Preserve order\nseen = set()\n[seen.add(x) or x for x in lst\n if x not in seen]`, tip:"set() removes duplicates but loses order. Use a seen-set to preserve order."},
+  {cat:"sets", title:"Frozenset", code:`fs = frozenset([1, 2, 3])\n# fs.add(4)  # Error! Immutable\n\n# Can be dict key or set member\ngroups = {frozenset([1,2]), frozenset([3,4])}`, tip:"Frozenset is the immutable version of set. Use when you need a hashable set."},
+  {cat:"sets", title:"Find Duplicates", code:`def find_dupes(lst):\n    seen = set()\n    dupes = set()\n    for x in lst:\n        if x in seen: dupes.add(x)\n        seen.add(x)\n    return dupes`, tip:"Two-set pattern: one for seen, one for duplicates. All O(1) operations."},
+
+  // === STRINGS ===
+  {cat:"strings", title:"Strings are Immutable", code:`s = "hello"\n# s[0] = "H"  # TypeError!\ns = "H" + s[1:]  # creates new string`, tip:"Every string operation creates a new string. Can't modify in place."},
+  {cat:"strings", title:"Join vs Concatenation", code:`# BAD - O(n^2)\nresult = ""\nfor s in parts: result += s\n\n# GOOD - O(n)\nresult = "".join(parts)`, tip:"String concatenation in loops is O(n^2). Always use join() for building strings."},
+  {cat:"strings", title:"split & join", code:`"a,b,c".split(",")     # ['a','b','c']\n"hello world".split()  # ['hello','world']\n"-".join(["a","b","c"]) # 'a-b-c'`, tip:"split/join are the main tools for word-level string manipulation."},
+  {cat:"strings", title:"strip, lower, upper", code:`s = "  Hello, World!  "\ns.strip()   # 'Hello, World!'\ns.lower()   # '  hello, world!  '\ns.upper()   # '  HELLO, WORLD!  '`, tip:"strip() removes whitespace from both ends. lstrip/rstrip for one side."},
+  {cat:"strings", title:"find & replace", code:`"hello".find("ll")     # 2 (-1 if missing)\n"banana".count("an")   # 2\n"aabaa".replace("a","x") # 'xxbxx'\n"aabaa".replace("a","x",1) # 'xabaa'`, tip:"find() returns -1 on miss (vs index() which raises). replace() can limit count."},
+  {cat:"strings", title:"ord() and chr()", code:`ord('a')  # 97\nord('A')  # 65\nchr(97)   # 'a'\n\n# Letter position:\nord('c') - ord('a')  # 2`, tip:"ord/chr convert between characters and ASCII codes. Essential for letter math."},
+  {cat:"strings", title:"f-strings", code:`name = "Alice"\nage = 30\nf"{name} is {age}"\nf"{3.14159:.2f}"      # '3.14'\nf"{'center':^20}"    # centered`, tip:"f-strings (3.6+) are the preferred way to format strings. Support expressions and format specs."},
+  {cat:"strings", title:"Type Checking Methods", code:`"123".isdigit()    # True\n"abc".isalpha()    # True\n"abc123".isalnum() # True\n"   ".isspace()    # True`, tip:"Useful for input validation without regex."},
+
+  // === COLLECTIONS ===
+  {cat:"collections", title:"Counter", code:`from collections import Counter\nCounter("abracadabra")\n# Counter({'a':5, 'b':2, 'r':2, ...})\nc["z"]  # 0 (no KeyError!)\nc.most_common(2) # [('a',5),('b',2)]`, tip:"Counter is the cleanest way to count things. Missing keys return 0."},
+  {cat:"collections", title:"Counter Arithmetic", code:`c1 = Counter("aab")\nc2 = Counter("abc")\nc1 + c2  # add counts\nc1 - c2  # subtract (drops <=0)\nc1 & c2  # min (intersection)\nc1 | c2  # max (union)`, tip:"Counter supports +, -, &, | for combining frequency maps."},
+  {cat:"collections", title:"defaultdict", code:`from collections import defaultdict\n\ngroups = defaultdict(list)\nfor w in words:\n    groups[sorted_key].append(w)\n\ncounts = defaultdict(int)\ncounts["x"] += 1  # auto-inits to 0`, tip:"defaultdict auto-initializes missing keys. list for grouping, int for counting, set for graphs."},
+  {cat:"collections", title:"deque: O(1) Both Ends", code:`from collections import deque\nd = deque([1, 2, 3])\nd.append(4)       # O(1) right\nd.appendleft(0)   # O(1) left\nd.pop()           # O(1) right\nd.popleft()       # O(1) left`, tip:"deque is the go-to for BFS queues. list.pop(0) is O(n), deque.popleft() is O(1)."},
+  {cat:"collections", title:"deque: Sliding Window", code:`from collections import deque\nwindow = deque(maxlen=3)\nfor i in range(5):\n    window.append(i)\n# window: deque([2, 3, 4])`, tip:"maxlen deque auto-drops oldest elements. Perfect for fixed-size sliding windows."},
+  {cat:"collections", title:"deque for BFS", code:`queue = deque([start])\nvisited = {start}\nwhile queue:\n    node = queue.popleft()  # O(1)\n    for nb in graph[node]:\n        if nb not in visited:\n            visited.add(nb)\n            queue.append(nb)`, tip:"Always use deque for BFS. list.pop(0) makes BFS O(n^2) instead of O(n)."},
+  {cat:"collections", title:"OrderedDict & LRU", code:`from collections import OrderedDict\nod = OrderedDict()\nod["a"] = 1\nod.move_to_end("a")       # to back\nod.popitem(last=False)     # pop oldest`, tip:"OrderedDict has move_to_end and popitem(last=False). Building block for LRU cache."},
+
+  // === COMPREHENSIONS ===
+  {cat:"comprehensions", title:"List Comprehension", code:`[x**2 for x in range(6)]\n# [0, 1, 4, 9, 16, 25]\n\n[x for x in range(10) if x % 2 == 0]\n# [0, 2, 4, 6, 8]`, tip:"List comps are ~30% faster than equivalent for-loops with append."},
+  {cat:"comprehensions", title:"Dict Comprehension", code:`{x: x**2 for x in range(5)}\n# {0:0, 1:1, 2:4, 3:9, 4:16}\n\n# Invert a dict\n{v: k for k, v in d.items()}`, tip:"Dict comps are great for transforming/inverting dictionaries."},
+  {cat:"comprehensions", title:"Set Comprehension", code:`{len(w) for w in ["hi","hello","hey"]}\n# {2, 5, 3}\n\n{w[0] for w in words}  # first chars`, tip:"Set comprehension gives you unique values directly."},
+  {cat:"comprehensions", title:"Nested Comprehension", code:`matrix = [[1,2,3],[4,5,6]]\nflat = [x for row in matrix\n          for x in row]\n# [1, 2, 3, 4, 5, 6]`, tip:"Read nested comps left to right: outer loop first, inner loop second."},
+  {cat:"comprehensions", title:"Generator Expression", code:`# Lazy - no list created\nsum(x**2 for x in range(1000000))\n\n# One-shot iteration\nall(x > 0 for x in nums)\nany(x > 5 for x in nums)`, tip:"Use () for generators when you only iterate once. Saves memory vs list comp."},
+  {cat:"comprehensions", title:"next() with Generator", code:`names = ["Al","Bob","Charlie","Di"]\nfirst_long = next(\n    (n for n in names if len(n) > 5),\n    None  # default if no match\n)\n# 'Charlie'`, tip:"next() with a generator expression is the cleanest way to find the first match."},
+  {cat:"comprehensions", title:"Walrus in Comps (3.8+)", code:`data = [1, 2, 3, 4, 5]\nresults = [y for x in data\n           if (y := x**2) > 10]\n# [16, 25]`, tip:"The walrus operator := avoids computing the expression twice in filter + transform."},
+  {cat:"comprehensions", title:"Transpose a Matrix", code:`matrix = [[1,2,3],[4,5,6]]\ntransposed = [list(row)\n              for row in zip(*matrix)]\n# [[1,4],[2,5],[3,6]]`, tip:"zip(*matrix) unpacks rows and zips columns. Classic one-liner for transpose."},
+
+  // === ITERTOOLS ===
+  {cat:"itertools", title:"permutations", code:`from itertools import permutations\nlist(permutations("ABC", 2))\n# ('A','B'),('A','C'),('B','A'),\n# ('B','C'),('C','A'),('C','B')\n# n!/(n-r)! arrangements`, tip:"Ordered arrangements. Use for problems asking \"all possible orderings\"."},
+  {cat:"itertools", title:"combinations", code:`from itertools import combinations\nlist(combinations("ABC", 2))\n# ('A','B'),('A','C'),('B','C')\n# n!/(r!(n-r)!) choices`, tip:"Unordered choices without replacement. Use for \"choose k from n\" problems."},
+  {cat:"itertools", title:"product (Cartesian)", code:`from itertools import product\nlist(product("01", repeat=2))\n# ('0','0'),('0','1'),\n# ('1','0'),('1','1')\n\nlist(product([1,2], ['a','b']))`, tip:"Cartesian product replaces nested loops. Use repeat for self-product."},
+  {cat:"itertools", title:"chain & flatten", code:`from itertools import chain\nlist(chain([1,2], [3,4], [5]))\n# [1, 2, 3, 4, 5]\n\nnested = [[1,2],[3],[4,5]]\nlist(chain.from_iterable(nested))`, tip:"chain concatenates iterables lazily. from_iterable flattens one level."},
+  {cat:"itertools", title:"accumulate (Prefix Sum)", code:`from itertools import accumulate\nlist(accumulate([1,2,3,4,5]))\n# [1, 3, 6, 10, 15]\n\nlist(accumulate([3,1,4,1,5], max))\n# [3, 3, 4, 4, 5]  running max`, tip:"accumulate computes running totals. Pass max/min for running extremes."},
+  {cat:"itertools", title:"groupby", code:`from itertools import groupby\ns = "AAABBBCCA"\nfor k, g in groupby(s):\n    print(k, list(g))\n# A ['A','A','A']\n# B ['B','B','B'] ...`, tip:"groupby groups CONSECUTIVE equal elements. Data must be sorted by key first!"},
+  {cat:"itertools", title:"islice", code:`from itertools import islice\n# Take first 5 from any iterable\nlist(islice(range(100), 5))\n# [0, 1, 2, 3, 4]\n\nlist(islice(range(100), 2, 10, 3))\n# [2, 5, 8]`, tip:"islice works on any iterable (generators too). Like slicing but lazy."},
+  {cat:"itertools", title:"Power Set", code:`from itertools import chain, combinations\ndef powerset(s):\n    s = list(s)\n    return chain.from_iterable(\n        combinations(s, r)\n        for r in range(len(s)+1))\nlist(powerset("AB"))\n# [(),('A',),('B',),('A','B')]`, tip:"Classic pattern: chain combinations of all sizes 0..n for the power set."},
+  {cat:"itertools", title:"takewhile & dropwhile", code:`from itertools import takewhile, dropwhile\nnums = [1, 3, 5, 2, 4]\ntakewhile(lambda x: x<5, nums)\n# [1, 3]\ndropwhile(lambda x: x<5, nums)\n# [5, 2, 4]`, tip:"takewhile stops at first False. dropwhile skips until first True. Both are lazy."},
+  {cat:"itertools", title:"zip_longest", code:`from itertools import zip_longest\nlist(zip([1,2,3], ['a','b']))\n# [(1,'a'), (2,'b')]  # shortest!\n\nlist(zip_longest([1,2,3], ['a','b'],\n    fillvalue='-'))\n# [(1,'a'),(2,'b'),(3,'-')]`, tip:"zip stops at shortest input. zip_longest pads with fillvalue."},
+];
+
+let currentFilter = "all";
+let isShuffled = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getFiltered() {
+  let filtered = currentFilter === "all"
+    ? [...cards]
+    : cards.filter(c => c.cat === currentFilter);
+  return isShuffled ? shuffle(filtered) : filtered;
+}
+
+function renderCards() {
+  const feed = document.getElementById("feed");
+  const filtered = getFiltered();
+  feed.innerHTML = filtered.map((c, i) => `
+    <div class="card" data-index="${i}">
+      <div class="card-inner">
+        <span class="card-tag tag-${c.cat}">${c.cat}</span>
+        <h2 class="card-title">${c.title}</h2>
+        <div class="card-code"><code>${highlightSyntax(c.code)}</code></div>
+        <p class="card-takeaway">${c.tip}</p>
+      </div>
+    </div>
+  `).join("");
+  updateCounter();
+  feed.scrollTop = 0;
+}
+
+function highlightSyntax(code) {
+  return code
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/(#[^\n]*)/g, '<span class="cm">$1</span>')
+    .replace(/\b(def|class|return|if|else|elif|for|while|in|not|and|or|is|from|import|try|except|with|as|yield|lambda|True|False|None|raise|del|pass|continue|break)\b/g, '<span class="kw">$1</span>')
+    .replace(/\b(print|len|range|enumerate|sorted|min|max|sum|all|any|next|zip|map|filter|list|dict|set|tuple|type|int|str|float|bool|iter|reversed|isinstance|hasattr|getattr|setattr|super|property|staticmethod|classmethod|repr|abs|round|pow|input|open|append|extend|insert|remove|pop|sort|reverse|keys|values|items|get|update|add|discard|union|intersection|difference|count|index|find|replace|split|join|strip|lstrip|rstrip|lower|upper|startswith|endswith|isdigit|isalpha|isalnum|isspace|isupper|islower|format|encode|decode|most_common|popleft|appendleft|extendleft|rotate|move_to_end|popitem|setdefault|copy|deepcopy|total|elements)\b(?=\()/g, '<span class="fn">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="st">$1</span>')
+    .replace(/\b(\d+\.?\d*)\b/g, '<span class="nu">$1</span>');
+}
+
+function updateCounter() {
+  const feed = document.getElementById("feed");
+  const cards = feed.querySelectorAll(".card");
+  const total = cards.length;
+  let current = 1;
+  const scrollTop = feed.scrollTop;
+  cards.forEach((card, i) => {
+    if (card.offsetTop <= scrollTop + window.innerHeight / 2) current = i + 1;
+  });
+  document.getElementById("counter").textContent = `${current} / ${total}`;
+}
+
+// Filter buttons
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentFilter = btn.dataset.filter;
+    renderCards();
+  });
+});
+
+// Shuffle button
+document.getElementById("shuffleBtn").addEventListener("click", () => {
+  isShuffled = !isShuffled;
+  document.getElementById("shuffleBtn").style.background = isShuffled ? "#58a6ff" : "#222";
+  renderCards();
+});
+
+// Update counter on scroll
+document.getElementById("feed").addEventListener("scroll", updateCounter);
+
+// Initial render
+renderCards();
+</script>
+</body>
+</html>
