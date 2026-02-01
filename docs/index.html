@@ -37,9 +37,9 @@
   }
 
   .topbar h1 {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     color: #fff;
   }
 
@@ -57,14 +57,15 @@
 
   .filter-btn {
     flex-shrink: 0;
-    padding: 5px 12px;
+    padding: 8px 16px;
     border-radius: 20px;
     border: 1px solid #333;
     background: transparent;
     color: var(--text-dim);
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .filter-btn:hover { border-color: #555; color: #ccc; }
@@ -72,14 +73,15 @@
 
   .shuffle-btn {
     flex-shrink: 0;
-    padding: 5px 12px;
+    padding: 8px 16px;
     border-radius: 20px;
     border: 1px solid #444;
     background: #222;
     color: #fff;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .shuffle-btn:hover { background: #333; }
@@ -101,15 +103,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 90px 20px 40px;
+    padding: 100px 12px 30px;
   }
 
   .card-inner {
     width: 100%;
-    max-width: 480px;
+    max-width: 560px;
     background: var(--card-bg);
     border-radius: 20px;
-    padding: 28px 24px;
+    padding: 24px 20px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     max-height: calc(100vh - 140px);
     overflow-y: auto;
@@ -117,20 +119,20 @@
 
   .card-tag {
     display: inline-block;
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: 12px;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
   }
 
   .card-title {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
     color: #fff;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     line-height: 1.3;
   }
 
@@ -138,10 +140,11 @@
     background: var(--code-bg);
     border-radius: 10px;
     padding: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     overflow-x: auto;
-    font-size: 13.5px;
-    line-height: 1.5;
+    -webkit-overflow-scrolling: touch;
+    font-size: 14.5px;
+    line-height: 1.55;
     border: 1px solid #21262d;
   }
 
@@ -152,11 +155,11 @@
   }
 
   .card-takeaway {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-dim);
-    line-height: 1.5;
+    line-height: 1.55;
     border-top: 1px solid #2a2a3e;
-    padding-top: 14px;
+    padding-top: 16px;
   }
 
   .card-takeaway strong { color: var(--accent); }
@@ -165,9 +168,25 @@
     position: fixed;
     bottom: 20px;
     right: 20px;
-    font-size: 13px;
+    font-size: 14px;
     color: #555;
     z-index: 100;
+  }
+
+  /* Small phones */
+  @media (max-width: 380px) {
+    .card-inner { padding: 20px 16px; }
+    .card-title { font-size: 21px; }
+    .card-code { font-size: 13px; padding: 14px; }
+    .card-takeaway { font-size: 15px; }
+  }
+
+  /* Tablets / large phones */
+  @media (min-width: 768px) {
+    .card-inner { max-width: 640px; padding: 36px 32px; }
+    .card-title { font-size: 28px; }
+    .card-code { font-size: 16px; }
+    .card-takeaway { font-size: 17px; }
   }
 
   /* Category colors */
@@ -329,13 +348,19 @@ function renderCards() {
 }
 
 function highlightSyntax(code) {
-  return code
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/(#[^\n]*)/g, '<span class="cm">$1</span>')
-    .replace(/\b(def|class|return|if|else|elif|for|while|in|not|and|or|is|from|import|try|except|with|as|yield|lambda|True|False|None|raise|del|pass|continue|break)\b/g, '<span class="kw">$1</span>')
-    .replace(/\b(print|len|range|enumerate|sorted|min|max|sum|all|any|next|zip|map|filter|list|dict|set|tuple|type|int|str|float|bool|iter|reversed|isinstance|hasattr|getattr|setattr|super|property|staticmethod|classmethod|repr|abs|round|pow|input|open|append|extend|insert|remove|pop|sort|reverse|keys|values|items|get|update|add|discard|union|intersection|difference|count|index|find|replace|split|join|strip|lstrip|rstrip|lower|upper|startswith|endswith|isdigit|isalpha|isalnum|isspace|isupper|islower|format|encode|decode|most_common|popleft|appendleft|extendleft|rotate|move_to_end|popitem|setdefault|copy|deepcopy|total|elements)\b(?=\()/g, '<span class="fn">$1</span>')
-    .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="st">$1</span>')
-    .replace(/\b(\d+\.?\d*)\b/g, '<span class="nu">$1</span>');
+  code = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const kwSet = new Set(["def","class","return","if","else","elif","for","while","in","not","and","or","is","from","import","try","except","with","as","yield","lambda","True","False","None","raise","del","pass","continue","break"]);
+  const fnSet = new Set(["print","len","range","enumerate","sorted","min","max","sum","all","any","next","zip","map","filter","list","dict","set","tuple","type","int","str","float","bool","iter","reversed","isinstance","hasattr","getattr","setattr","super","repr","abs","round","pow","input","open","append","extend","insert","remove","pop","sort","reverse","keys","values","items","get","update","add","discard","union","intersection","difference","count","index","find","replace","split","join","strip","lstrip","rstrip","lower","upper","startswith","endswith","isdigit","isalpha","isalnum","isspace","isupper","islower","format","encode","decode","most_common","popleft","appendleft","extendleft","rotate","move_to_end","popitem","setdefault","copy","deepcopy","total","elements"]);
+  // Single-pass regex: comments | strings | words | numbers
+  return code.replace(/(#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\b[a-zA-Z_]\w*\b)(\()?|(\b\d+\.?\d*\b)/g,
+    function(m, comment, str, word, paren, num) {
+      if (comment) return '<span class="cm">' + comment + '</span>';
+      if (str) return '<span class="st">' + str + '</span>';
+      if (word && paren && fnSet.has(word)) return '<span class="fn">' + word + '</span>(';
+      if (word && kwSet.has(word)) return '<span class="kw">' + word + '</span>';
+      if (num) return '<span class="nu">' + num + '</span>';
+      return m;
+    });
 }
 
 function updateCounter() {
