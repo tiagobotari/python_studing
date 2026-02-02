@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Learning Flashcards</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0f0f;
+    --card-bg: #1a1a2e;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --code-bg: #0d1117;
+    --accent: #58a6ff;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(15,15,15,0.92);
+    backdrop-filter: blur(10px);
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid #222;
+  }
+
+  .topbar h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #fff;
+  }
+
+  .topbar h1 span { color: var(--accent); }
+  .topbar h1 a { color: var(--text-dim); text-decoration: none; margin-right: 8px; }
+
+  .filters {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+
+  .filters::-webkit-scrollbar { display: none; }
+
+  .filter-btn {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #333;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .filter-btn:hover { border-color: #555; color: #ccc; }
+  .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .shuffle-btn {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #444;
+    background: #222;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .shuffle-btn:hover { background: #333; }
+
+  .feed {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+  }
+
+  .feed::-webkit-scrollbar { display: none; }
+
+  .card {
+    height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 12px 30px;
+  }
+
+  .card-inner {
+    width: 100%;
+    max-width: 560px;
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 24px 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+  }
+
+  .card-tag {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 18px;
+    line-height: 1.3;
+  }
+
+  .card-code {
+    background: var(--code-bg);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 14.5px;
+    line-height: 1.55;
+    border: 1px solid #21262d;
+  }
+
+  .card-code code {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    color: #c9d1d9;
+    white-space: pre;
+  }
+
+  .card-takeaway {
+    font-size: 16px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    border-top: 1px solid #2a2a3e;
+    padding-top: 16px;
+  }
+
+  .card-takeaway strong { color: var(--accent); }
+
+  .card-counter {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 14px;
+    color: #555;
+    z-index: 100;
+  }
+
+  @media (max-width: 380px) {
+    .card-inner { padding: 20px 16px; }
+    .card-title { font-size: 21px; }
+    .card-code { font-size: 13px; padding: 14px; }
+    .card-takeaway { font-size: 15px; }
+  }
+
+  @media (min-width: 768px) {
+    .card-inner { max-width: 640px; padding: 36px 32px; }
+    .card-title { font-size: 28px; }
+    .card-code { font-size: 16px; }
+    .card-takeaway { font-size: 17px; }
+  }
+
+  /* Category colors */
+  .tag-fundamentals  { background: #1e3a5f; color: #58a6ff; }
+  .tag-activations   { background: #3b2e58; color: #b48eff; }
+  .tag-loss          { background: #4a1e2e; color: #f47067; }
+  .tag-backprop      { background: #2e4a3e; color: #56d364; }
+  .tag-optimizers    { background: #4a3a1e; color: #f0b952; }
+  .tag-regularization { background: #1e4a4a; color: #56d3c4; }
+  .tag-cnns          { background: #3e3a1e; color: #d4c456; }
+  .tag-rnns          { background: #2e1e4a; color: #c490f5; }
+  .tag-transformers  { background: #4a2e1e; color: #f0905f; }
+
+  .kw { color: #ff7b72; }
+  .fn { color: #d2a8ff; }
+  .st { color: #a5d6ff; }
+  .cm { color: #8b949e; }
+  .nu { color: #79c0ff; }
+  .op { color: #ff7b72; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1><a href="index.html">&#x2190;</a>&#x1F9E0; Deep Learning Flashcards</h1>
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="fundamentals">Fundamentals</button>
+    <button class="filter-btn" data-filter="activations">Activations</button>
+    <button class="filter-btn" data-filter="loss">Loss</button>
+    <button class="filter-btn" data-filter="backprop">Backprop</button>
+    <button class="filter-btn" data-filter="optimizers">Optimizers</button>
+    <button class="filter-btn" data-filter="regularization">Regularization</button>
+    <button class="filter-btn" data-filter="cnns">CNNs</button>
+    <button class="filter-btn" data-filter="rnns">RNNs</button>
+    <button class="filter-btn" data-filter="transformers">Transformers</button>
+    <button class="shuffle-btn" id="shuffleBtn">&#x1F500; Shuffle</button>
+  </div>
+</div>
+
+<div class="feed" id="feed"></div>
+<div class="card-counter" id="counter"></div>
+
+<script>
+const cards = [
+  // === FUNDAMENTALS ===
+  {cat:"fundamentals", title:"The Neuron", code:`output = activation(w1*x1 + w2*x2 + ... + b)\n\n  x1 --w1--\\\n  x2 --w2--->(sum + b)-->[activation]-->output\n  x3 --w3--/`, tip:"A neuron computes a weighted sum of inputs plus a bias, then applies a non-linear activation function."},
+  {cat:"fundamentals", title:"Layers & Depth", code:`Input (784)  -->  Hidden (256)  -->  Output (10)\n\nEach arrow = weight matrix + bias vector\nHidden layer: h = activation(W*x + b)\nOutput layer: y = softmax(W*h + b)`, tip:"Deep networks stack multiple layers. Each layer learns increasingly abstract representations of the input."},
+  {cat:"fundamentals", title:"Forward Pass", code:`# Layer 1\nz1 = W1 @ x + b1\na1 = relu(z1)\n\n# Layer 2\nz2 = W2 @ a1 + b2\na2 = softmax(z2)\n\nloss = cross_entropy(a2, y_true)`, tip:"The forward pass computes predictions by pushing data through layers. The loss measures how wrong the prediction is."},
+  {cat:"fundamentals", title:"Parameters vs Hyperparameters", code:`Parameters (learned):\n  - Weights W, biases b\n  - Updated by optimizer during training\n\nHyperparameters (set by you):\n  - Learning rate, batch size, epochs\n  - Number of layers, hidden units\n  - Not learned from data`, tip:"Parameters are what the network learns. Hyperparameters are design choices you make before training."},
+  {cat:"fundamentals", title:"Universal Approximation", code:`A single hidden layer with enough neurons\ncan approximate ANY continuous function.\n\nBut in practice:\n- Deeper > wider (more parameter efficient)\n- 2-3 hidden layers solve most problems\n- Very deep nets need special tricks\n  (residual connections, normalization)`, tip:"Depth is more parameter-efficient than width. One wide layer can approximate anything in theory, but deep networks do it with far fewer parameters."},
+  {cat:"fundamentals", title:"Epochs, Batches, Iterations", code:`Dataset: 10,000 samples\nBatch size: 100\n\n1 iteration  = process 1 batch (100 samples)\n1 epoch      = process all batches (100 iterations)\n10 epochs    = 1,000 total iterations`, tip:"An epoch is one full pass through the dataset. Mini-batch gradient descent updates weights after each batch, not after each sample."},
+  {cat:"fundamentals", title:"Train / Val / Test Split", code:`Dataset split:\n  Train: 70-80%  (learn parameters)\n  Val:   10-15%  (tune hyperparameters)\n  Test:  10-15%  (final evaluation)\n\nGolden rule: NEVER tune on test set.\nTest set = used exactly once at the end.`, tip:"The validation set guides hyperparameter choices. The test set gives an unbiased estimate of real-world performance."},
+
+  // === ACTIVATIONS ===
+  {cat:"activations", title:"Sigmoid", code:`sigmoid(z) = 1 / (1 + e^(-z))\n\nOutput range: (0, 1)\n\nPros: Probabilistic interpretation\nCons: Vanishing gradients at extremes\n      Output not zero-centered\n      exp() is expensive`, tip:"Sigmoid squashes to (0,1). Mostly used in output layers for binary classification. Avoid in hidden layers due to vanishing gradients."},
+  {cat:"activations", title:"Tanh", code:`tanh(z) = (e^z - e^(-z)) / (e^z + e^(-z))\n\nOutput range: (-1, 1)\n\nPros: Zero-centered output\nCons: Still has vanishing gradient problem\n      Saturates at large |z|`, tip:"Tanh is zero-centered (unlike sigmoid) which helps optimization, but still suffers from vanishing gradients at saturation."},
+  {cat:"activations", title:"ReLU", code:`ReLU(z) = max(0, z)\n\nOutput range: [0, infinity)\n\nPros: Fast, no vanishing gradient (z>0)\n      Sparse activation\nCons: \"Dying ReLU\" - neurons stuck at 0\n      Not zero-centered`, tip:"ReLU is the default activation for hidden layers. Simple, fast, and works well. Watch out for dying neurons with high learning rates."},
+  {cat:"activations", title:"Leaky ReLU & Variants", code:`Leaky ReLU(z) = z if z > 0\n                0.01*z if z <= 0\n\nPReLU:  slope is a learnable parameter\nELU:    alpha*(e^z - 1) for z <= 0\nGELU:   z * sigmoid(1.702*z)  [approx]`, tip:"Leaky ReLU fixes dying neurons by allowing a small gradient when z < 0. GELU is popular in transformers."},
+  {cat:"activations", title:"Softmax", code:`softmax(z_i) = e^(z_i) / sum(e^(z_j))\n\nInput:  [2.0, 1.0, 0.1]\nOutput: [0.659, 0.242, 0.099]\n\nProperties:\n  - All outputs in (0, 1)\n  - Outputs sum to 1\n  - Amplifies differences`, tip:"Softmax converts raw scores (logits) into a probability distribution. Used in the output layer for multi-class classification."},
+
+  // === LOSS FUNCTIONS ===
+  {cat:"loss", title:"Mean Squared Error (MSE)", code:`MSE = (1/n) * sum((y_pred - y_true)^2)\n\nExample:\n  y_true = [1.0, 2.0, 3.0]\n  y_pred = [1.1, 2.5, 2.8]\n  MSE = (0.01 + 0.25 + 0.04) / 3 = 0.1`, tip:"MSE is the go-to loss for regression. Penalizes large errors heavily due to squaring. Sensitive to outliers."},
+  {cat:"loss", title:"Binary Cross-Entropy", code:`BCE = -(1/n) * sum(\n  y*log(p) + (1-y)*log(1-p)\n)\n\ny=1, p=0.9: -log(0.9) = 0.105  (low loss)\ny=1, p=0.1: -log(0.1) = 2.303  (high loss)`, tip:"BCE is used for binary classification. Penalizes confident wrong predictions heavily. Pair with sigmoid output."},
+  {cat:"loss", title:"Categorical Cross-Entropy", code:`CE = -sum(y_true * log(y_pred))\n\ny_true = [0, 1, 0]  (one-hot)\ny_pred = [0.1, 0.8, 0.1]\nCE = -log(0.8) = 0.223\n\ny_pred = [0.1, 0.2, 0.7]\nCE = -log(0.2) = 1.609`, tip:"Cross-entropy measures how different the predicted distribution is from the true distribution. Only the true class probability matters."},
+  {cat:"loss", title:"Loss vs Metric", code:`Loss function:\n  - Must be differentiable\n  - Used by optimizer during training\n  - e.g. cross-entropy, MSE\n\nMetric:\n  - For human evaluation\n  - Need not be differentiable\n  - e.g. accuracy, F1, BLEU`, tip:"You optimize the loss, but evaluate with metrics. Accuracy isn't differentiable, so you can't use it as a loss function directly."},
+  {cat:"loss", title:"Softmax + Cross-Entropy Trick", code:`# Numerically unstable:\nloss = -log(softmax(logits)[true_class])\n\n# Stable (combined):\nloss = -logits[true_class] + log(sum(exp(logits)))\n\n# Frameworks do this automatically:\nloss = CrossEntropyLoss(logits, labels)`, tip:"Always pass raw logits to cross-entropy loss, not softmax outputs. The combined computation is numerically stable via the log-sum-exp trick."},
+
+  // === BACKPROPAGATION ===
+  {cat:"backprop", title:"Chain Rule", code:`y = f(g(x))\n\ndy/dx = dy/dg * dg/dx\n\nNeural net: Loss -> Layer3 -> Layer2 -> Layer1\n\ndLoss/dW1 = dLoss/da3 * da3/dz3 *\n            dz3/da2 * da2/dz2 *\n            dz2/da1 * da1/dz1 *\n            dz1/dW1`, tip:"Backpropagation is just the chain rule applied recursively. Gradients flow backward from loss to each parameter."},
+  {cat:"backprop", title:"Gradient Descent Update", code:`# For each parameter theta:\ntheta = theta - learning_rate * dLoss/dtheta\n\nlearning_rate = 0.01 (typical starting point)\n\nToo high: diverges, loss explodes\nToo low:  very slow convergence\nJust right: smooth decrease in loss`, tip:"The learning rate is the most important hyperparameter. Start with 1e-3 for Adam, 1e-2 for SGD. Reduce if loss oscillates."},
+  {cat:"backprop", title:"Vanishing Gradients", code:`Gradient through sigmoid/tanh:\n  sigmoid'(z) = sigmoid(z)*(1 - sigmoid(z))\n  max gradient = 0.25 (at z=0)\n\n10 layers: 0.25^10 = 9.5e-7\n\nEarly layers barely learn!\n\nFixes: ReLU, residual connections,\n       batch norm, LSTM/GRU for RNNs`, tip:"When gradients multiply through many layers, they can shrink exponentially. This makes early layers learn extremely slowly."},
+  {cat:"backprop", title:"Exploding Gradients", code:`If gradients > 1 at each layer:\n  1.5^50 = 637,621,500\n\nSymptoms: NaN loss, huge weight updates\n\nFixes:\n  - Gradient clipping: clip to max norm\n  - Proper weight initialization\n  - Batch normalization\n  - Lower learning rate`, tip:"Exploding gradients cause unstable training. Gradient clipping (limiting the gradient norm) is a simple and effective fix."},
+  {cat:"backprop", title:"Computation Graph", code:`x  -->  [*W1] --> [+b1] --> [ReLU] --> z\n                                        |\n        loss <-- [CE] <-- [softmax] <-- [*W2+b2]\n\nForward: compute values left to right\nBackward: compute gradients right to left\n\nEach node stores values for backward pass`, tip:"Frameworks build a computation graph during the forward pass, then traverse it backward to compute gradients. This is automatic differentiation."},
+  {cat:"backprop", title:"Weight Initialization", code:`# Too small: vanishing signals\n# Too large: exploding signals\n\nXavier/Glorot (sigmoid/tanh):\n  W ~ N(0, 2/(fan_in + fan_out))\n\nHe/Kaiming (ReLU):\n  W ~ N(0, 2/fan_in)\n\nfan_in = input units, fan_out = output units`, tip:"Proper initialization keeps signal variance stable across layers. Use He init for ReLU networks, Xavier for sigmoid/tanh."},
+
+  // === OPTIMIZERS ===
+  {cat:"optimizers", title:"SGD (Stochastic Gradient Descent)", code:`# Vanilla SGD:\nW = W - lr * gradient\n\n# SGD with Momentum:\nv = momentum * v - lr * gradient\nW = W + v\n\nmomentum = 0.9 (typical)\n\nMomentum smooths updates and helps\nescape shallow local minima.`, tip:"SGD with momentum is a strong baseline. It often generalizes better than Adam but requires more tuning of the learning rate."},
+  {cat:"optimizers", title:"Adam", code:`# Maintains running averages:\nm = beta1*m + (1-beta1)*gradient     # 1st moment\nv = beta2*v + (1-beta2)*gradient^2   # 2nd moment\n\n# Bias correction:\nm_hat = m / (1 - beta1^t)\nv_hat = v / (1 - beta2^t)\n\nW = W - lr * m_hat / (sqrt(v_hat) + eps)`, tip:"Adam adapts learning rates per-parameter. Default (lr=1e-3, beta1=0.9, beta2=0.999) works well for most problems. The most popular optimizer."},
+  {cat:"optimizers", title:"Learning Rate Schedules", code:`Step decay:\n  lr = lr * 0.1 every 30 epochs\n\nCosine annealing:\n  lr = lr_min + 0.5*(lr_max-lr_min)*(1+cos(pi*t/T))\n\nWarmup + decay:\n  Linearly increase lr for first N steps,\n  then decay. Used in transformer training.`, tip:"Learning rate scheduling often matters more than the choice of optimizer. Warmup helps stabilize early training in large models."},
+  {cat:"optimizers", title:"AdamW (Decoupled Weight Decay)", code:`# Adam: L2 added to loss\ngrad = grad + weight_decay * W  # coupled\n\n# AdamW: decay applied directly to W\nW = W - lr * adam_update\nW = W - lr * weight_decay * W   # decoupled\n\nAdamW is preferred for transformers.`, tip:"AdamW fixes a subtle bug in Adam's weight decay. It's the standard optimizer for transformer training."},
+  {cat:"optimizers", title:"Gradient Clipping", code:`# Clip by value:\ngrad = clamp(grad, -max_val, max_val)\n\n# Clip by norm (preferred):\nnorm = sqrt(sum(grad^2))\nif norm > max_norm:\n    grad = grad * (max_norm / norm)\n\nTypical max_norm: 1.0 or 5.0`, tip:"Gradient clipping prevents exploding gradients. Clip by norm preserves gradient direction, which is better than clip by value."},
+
+  // === REGULARIZATION ===
+  {cat:"regularization", title:"Overfitting vs Underfitting", code:`Underfitting (high bias):\n  Train loss: HIGH    Val loss: HIGH\n  Model too simple for the data\n\nOverfitting (high variance):\n  Train loss: LOW     Val loss: HIGH\n  Model memorized training data\n\nGood fit:\n  Train loss: LOW     Val loss: LOW`, tip:"If val loss starts increasing while train loss keeps decreasing, you're overfitting. Regularization helps close this gap."},
+  {cat:"regularization", title:"Dropout", code:`Training:\n  Randomly zero out neurons with prob p\n  Scale remaining by 1/(1-p)\n\n  h = [0.5, 0, 0.3, 0, 0.8]  (p=0.5)\n       kept  off kept off kept\n\nInference:\n  Use all neurons (no dropout)\n  Outputs are already correctly scaled`, tip:"Dropout prevents co-adaptation of neurons. Typical p=0.1-0.5. Apply to hidden layers, not output. Acts like an ensemble."},
+  {cat:"regularization", title:"L1 and L2 Regularization", code:`L2 (weight decay):\n  Loss = Loss + lambda * sum(W^2)\n  Pushes weights toward zero (small)\n  Smooth penalty\n\nL1 (lasso):\n  Loss = Loss + lambda * sum(|W|)\n  Pushes some weights to EXACTLY zero\n  Produces sparse models`, tip:"L2 makes weights small, L1 makes weights sparse. L2 (weight decay) is far more common in deep learning."},
+  {cat:"regularization", title:"Batch Normalization", code:`# For each mini-batch:\nmu = mean(x, axis=0)\nsigma2 = var(x, axis=0)\nx_norm = (x - mu) / sqrt(sigma2 + eps)\nout = gamma * x_norm + beta\n\ngamma, beta = learnable parameters\n\nPlacement: usually before activation`, tip:"BatchNorm normalizes layer inputs, reducing internal covariate shift. Allows higher learning rates and acts as mild regularization."},
+  {cat:"regularization", title:"Layer Normalization", code:`# BatchNorm: normalize across batch\n# LayerNorm: normalize across features\n\nBatchNorm: mean/var over (N,)    per feature\nLayerNorm: mean/var over (D,)    per sample\n\nLayerNorm works with any batch size.\nPreferred for transformers and RNNs.`, tip:"LayerNorm normalizes across features for each sample independently. It doesn't depend on batch statistics, making it ideal for transformers."},
+  {cat:"regularization", title:"Early Stopping", code:`best_val_loss = infinity\npatience = 10\nwait = 0\n\nfor epoch in range(max_epochs):\n    train(model)\n    val_loss = evaluate(model)\n    if val_loss < best_val_loss:\n        best_val_loss = val_loss\n        save(model)\n        wait = 0\n    else:\n        wait += 1\n        if wait >= patience: break`, tip:"Early stopping prevents overfitting by halting training when validation loss stops improving. Simple, effective, and free."},
+  {cat:"regularization", title:"Data Augmentation", code:`Image augmentations:\n  - Random crop, flip, rotation\n  - Color jitter, brightness\n  - Cutout, Mixup, CutMix\n\nText augmentations:\n  - Synonym replacement\n  - Random insertion/deletion\n  - Back-translation\n\nEffect: Artificially increases dataset size`, tip:"Data augmentation is the most effective form of regularization. It makes the model invariant to transformations that shouldn't change the label."},
+
+  // === CNNs ===
+  {cat:"cnns", title:"Convolution Operation", code:`Input:    5x5       Filter:  3x3\n[1 0 1 0 1]       [1 0 1]\n[0 1 0 1 0]       [0 1 0]\n[1 0 1 0 1]       [1 0 1]\n[0 1 0 1 0]\n[1 0 1 0 1]\n\nSlide filter across input, compute\ndot product at each position.\nOutput: (5-3+1) x (5-3+1) = 3x3`, tip:"A convolution slides a small filter over the input, computing dot products. Each filter learns to detect a specific local pattern (edge, texture, etc)."},
+  {cat:"cnns", title:"Stride and Padding", code:`Output size = (N - F + 2P) / S + 1\n\nN=input, F=filter, P=padding, S=stride\n\nStride=1, No padding: output shrinks\nStride=2: output halves (downsampling)\nPadding='same': output = input size\n  P = (F-1)/2 for stride=1`, tip:"Stride controls step size (larger = smaller output). Padding preserves spatial dimensions. 'Same' padding is the most common."},
+  {cat:"cnns", title:"Pooling Layers", code:`Max Pooling (2x2, stride 2):\n  [1 3 | 2 4]      [3  4]\n  [5 6 | 7 8]  --> [6  8]\n  Input: 4x4    Output: 2x2\n\nAverage Pooling: takes mean instead\nGlobal Avg Pool: entire feature map --> 1 value`, tip:"Pooling reduces spatial dimensions and provides translation invariance. Max pooling is most common. Global average pooling replaces fully-connected layers."},
+  {cat:"cnns", title:"Feature Maps & Channels", code:`Input: H x W x 3 (RGB)\nConv layer: 32 filters of 3x3x3\nOutput: H x W x 32\n\nEach filter produces one feature map.\nMore filters = more features detected.\n\nTypical progression:\n  3 -> 64 -> 128 -> 256 -> 512`, tip:"Each convolutional filter produces one feature map (channel). Early layers detect edges, middle layers detect textures, deep layers detect objects."},
+  {cat:"cnns", title:"Receptive Field", code:`Layer 1 (3x3 conv): each output sees 3x3\nLayer 2 (3x3 conv): each output sees 5x5\nLayer 3 (3x3 conv): each output sees 7x7\n\nStacking small filters:\n  3 layers of 3x3 = same receptive field\n  as 1 layer of 7x7, but fewer parameters\n  and more non-linearity`, tip:"The receptive field is the input region that affects one output neuron. Stacking small (3x3) filters is more efficient than using large filters."},
+  {cat:"cnns", title:"1x1 Convolutions", code:`Input: H x W x 256\n1x1 Conv (64 filters): H x W x 64\n\nNo spatial mixing, only channel mixing.\n\nUses:\n  - Reduce/increase channel dimension\n  - Add non-linearity (cheap)\n  - Bottleneck in ResNet/Inception`, tip:"1x1 convolutions mix information across channels without changing spatial dimensions. Key building block for efficient architectures."},
+  {cat:"cnns", title:"Residual Connection (ResNet)", code:`# Standard block:\nout = F(x)           # might lose info\n\n# Residual block:\nout = F(x) + x       # skip connection\n\n# The network only needs to learn\n# the RESIDUAL: F(x) = desired - x\n# Much easier to learn small corrections\n# than full transformations`, tip:"Skip connections let gradients flow directly through the network, enabling training of very deep models (100+ layers). The key insight of ResNet."},
+
+  // === RNNs ===
+  {cat:"rnns", title:"Vanilla RNN", code:`h_t = tanh(W_hh * h_{t-1} + W_xh * x_t + b)\ny_t = W_hy * h_t\n\nh_t: hidden state (memory)\nx_t: input at time t\ny_t: output at time t\n\nSame weights W shared across all timesteps`, tip:"RNNs process sequences by maintaining a hidden state that gets updated at each time step. Weight sharing across time is key."},
+  {cat:"rnns", title:"Vanishing Gradient in RNNs", code:`Gradient through time:\n  dL/dh_0 = dL/dh_T * prod(dh_t/dh_{t-1})\n\nEach step multiplies by W_hh.\nIf max eigenvalue < 1: vanishing\nIf max eigenvalue > 1: exploding\n\nVanilla RNNs struggle with sequences\nlonger than ~10-20 steps.`, tip:"RNNs have trouble learning long-range dependencies because gradients vanish or explode when backpropagated through many time steps."},
+  {cat:"rnns", title:"LSTM (Long Short-Term Memory)", code:`f_t = sigmoid(W_f*[h_{t-1}, x_t] + b_f)  # forget\ni_t = sigmoid(W_i*[h_{t-1}, x_t] + b_i)  # input\no_t = sigmoid(W_o*[h_{t-1}, x_t] + b_o)  # output\nc_t = f_t * c_{t-1} + i_t * tanh(W_c*[h_{t-1}, x_t])\nh_t = o_t * tanh(c_t)\n\n3 gates control information flow.`, tip:"LSTM solves vanishing gradients with a cell state highway and gates. Forget gate decides what to discard, input gate what to store, output gate what to expose."},
+  {cat:"rnns", title:"GRU (Gated Recurrent Unit)", code:`r_t = sigmoid(W_r*[h_{t-1}, x_t])  # reset\nz_t = sigmoid(W_z*[h_{t-1}, x_t])  # update\nh_t = z_t * h_{t-1} +\n      (1-z_t) * tanh(W*[r_t*h_{t-1}, x_t])\n\n2 gates (vs LSTM's 3): simpler, faster\nPerformance similar to LSTM in practice`, tip:"GRU is a simplified LSTM with 2 gates instead of 3 and no separate cell state. Fewer parameters, similar performance."},
+  {cat:"rnns", title:"Bidirectional RNN", code:`Forward:   h1 -> h2 -> h3 -> h4\n              \\     \\     \\     \\\nInput:     x1    x2    x3    x4\n              /     /     /     /\nBackward:  h4 <- h3 <- h2 <- h1\n\nOutput at each step = concat(fwd, bwd)\n\nSees both past and future context.`, tip:"Bidirectional RNNs process the sequence in both directions. Essential when full context is available (e.g., text classification, NER), not for autoregressive generation."},
+  {cat:"rnns", title:"Sequence-to-Sequence", code:`Encoder:   x1 x2 x3 --> [h]\n                         |\nDecoder:              [h] --> y1 y2 y3\n\nEncoder compresses input into context.\nDecoder generates output from context.\n\nProblem: single vector bottleneck\nSolution: attention mechanism`, tip:"Seq2seq architecture encodes input to a fixed vector, then decodes to output. The fixed-size bottleneck limits performance on long sequences."},
+
+  // === TRANSFORMERS ===
+  {cat:"transformers", title:"Self-Attention", code:`Attention(Q, K, V) = softmax(Q*K^T / sqrt(d_k)) * V\n\nQ = query  (what am I looking for?)\nK = key    (what do I contain?)\nV = value  (what do I provide?)\n\nEach token attends to ALL other tokens.\nAttention weights = how much to focus.`, tip:"Self-attention lets every token in a sequence look at every other token directly. This is how transformers capture long-range dependencies without recurrence."},
+  {cat:"transformers", title:"Scaled Dot-Product Attention", code:`scores = Q @ K.T / sqrt(d_k)\n\nWhy scale by sqrt(d_k)?\n  Large d_k -> large dot products\n  -> softmax saturates\n  -> tiny gradients\n\nd_k = 64 (typical)\nsqrt(64) = 8\nDividing keeps variance ~ 1`, tip:"Without scaling, dot products grow with dimension size, pushing softmax into saturated regions with near-zero gradients."},
+  {cat:"transformers", title:"Multi-Head Attention", code:`MultiHead(Q, K, V):\n  head_i = Attention(Q*W_i^Q, K*W_i^K, V*W_i^V)\n  output = Concat(head_1, ..., head_h) * W^O\n\nd_model = 512, h = 8 heads\nd_k = d_v = 512/8 = 64 per head\n\nEach head learns different patterns.`, tip:"Multiple attention heads let the model attend to different relationship types simultaneously (syntax, semantics, position, etc)."},
+  {cat:"transformers", title:"Positional Encoding", code:`PE(pos, 2i)   = sin(pos / 10000^(2i/d))\nPE(pos, 2i+1) = cos(pos / 10000^(2i/d))\n\nInput = token_embedding + position_encoding\n\nSelf-attention is permutation invariant.\nWithout PE, \"cat sat mat\" = \"mat cat sat\"`, tip:"Since self-attention has no notion of order, positional encodings inject sequence position information. Without them, the model can't distinguish word order."},
+  {cat:"transformers", title:"Transformer Block", code:`         x\n         |\n  [Multi-Head Attention]\n         |\n  [Add & LayerNorm]  <-- residual from x\n         |\n  [Feed-Forward (MLP)]\n         |\n  [Add & LayerNorm]  <-- residual\n         |\n       output\n\nStack N=6 to N=12 blocks.`, tip:"Each transformer block has attention + feed-forward with residual connections and layer normalization. The architecture is surprisingly simple."},
+  {cat:"transformers", title:"Encoder vs Decoder", code:`Encoder (e.g. BERT):\n  - Bidirectional self-attention\n  - Sees all tokens at once\n  - Good for: classification, NER\n\nDecoder (e.g. GPT):\n  - Causal (masked) self-attention\n  - Only sees past tokens\n  - Good for: generation\n\nEncoder-Decoder (e.g. T5):\n  - Translation, summarization`, tip:"Encoders see the full sequence (bidirectional), decoders only see the past (autoregressive). The choice depends on the task."},
+  {cat:"transformers", title:"Causal Masking", code:`Attention matrix (4 tokens):\n     t1   t2   t3   t4\nt1 [ ok  -inf -inf -inf]\nt2 [ ok   ok  -inf -inf]\nt3 [ ok   ok   ok  -inf]\nt4 [ ok   ok   ok   ok ]\n\n-inf before softmax = 0 attention weight\nPrevents looking at future tokens.`, tip:"Causal masking sets future positions to -infinity before softmax, ensuring each token can only attend to previous tokens. Essential for autoregressive generation."},
+  {cat:"transformers", title:"Feed-Forward Network (MLP)", code:`FFN(x) = GELU(x * W1 + b1) * W2 + b2\n\nd_model = 512\nd_ff = 2048 (4x expansion)\n\nExpand -> activate -> project back\n\nApplied independently to each position.\nWhere the \"thinking\" happens.`, tip:"The FFN expands dimensionality (typically 4x), applies non-linearity, then projects back. It's applied per-position and accounts for most transformer parameters."},
+  {cat:"transformers", title:"Why Transformers Win", code:`RNN:  O(n) sequential steps\n      Can't parallelize across time\n      Gradient path length: O(n)\n\nTransformer:\n      O(1) path between any two tokens\n      Fully parallelizable (all tokens at once)\n      O(n^2) memory for attention\n\nTradeoff: more memory, but much faster.`, tip:"Transformers replaced RNNs because they parallelize training and connect any two positions in O(1) layers. The O(n^2) attention cost is the main limitation."},
+];
+
+let currentFilter = "all";
+let isShuffled = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getFiltered() {
+  let filtered = currentFilter === "all"
+    ? [...cards]
+    : cards.filter(c => c.cat === currentFilter);
+  return isShuffled ? shuffle(filtered) : filtered;
+}
+
+function renderCards() {
+  const feed = document.getElementById("feed");
+  const filtered = getFiltered();
+  feed.innerHTML = filtered.map((c, i) => `
+    <div class="card" data-index="${i}">
+      <div class="card-inner">
+        <span class="card-tag tag-${c.cat}">${c.cat}</span>
+        <h2 class="card-title">${c.title}</h2>
+        <div class="card-code"><code>${escapeHtml(c.code)}</code></div>
+        <p class="card-takeaway">${c.tip}</p>
+      </div>
+    </div>
+  `).join("");
+  updateCounter();
+  feed.scrollTop = 0;
+}
+
+function escapeHtml(code) {
+  return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function updateCounter() {
+  const feed = document.getElementById("feed");
+  const cards = feed.querySelectorAll(".card");
+  const total = cards.length;
+  let current = 1;
+  const scrollTop = feed.scrollTop;
+  cards.forEach((card, i) => {
+    if (card.offsetTop <= scrollTop + window.innerHeight / 2) current = i + 1;
+  });
+  document.getElementById("counter").textContent = `${current} / ${total}`;
+}
+
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentFilter = btn.dataset.filter;
+    renderCards();
+  });
+});
+
+document.getElementById("shuffleBtn").addEventListener("click", () => {
+  isShuffled = !isShuffled;
+  document.getElementById("shuffleBtn").style.background = isShuffled ? "#58a6ff" : "#222";
+  renderCards();
+});
+
+document.getElementById("feed").addEventListener("scroll", updateCounter);
+
+renderCards();
+</script>
+</body>
+</html>
