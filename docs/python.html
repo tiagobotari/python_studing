@@ -311,8 +311,34 @@ const cards = [
   {cat:"itertools", title:"zip_longest", code:`from itertools import zip_longest\nlist(zip([1,2,3], ['a','b']))\n# [(1,'a'), (2,'b')]  # shortest!\n\nlist(zip_longest([1,2,3], ['a','b'],\n    fillvalue='-'))\n# [(1,'a'),(2,'b'),(3,'-')]`, tip:"zip stops at shortest input. zip_longest pads with fillvalue."},
 ];
 
-let currentFilter = "all";
-let isShuffled = false;
+const STORAGE_KEY = "flashcards_python";
+
+function saveState(cardIndex) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    filter: currentFilter,
+    shuffled: isShuffled,
+    cardIndex: cardIndex ?? getCurrentCardIndex()
+  }));
+}
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+}
+
+function getCurrentCardIndex() {
+  const feed = document.getElementById("feed");
+  const cardEls = feed.querySelectorAll(".card");
+  let current = 0;
+  const scrollTop = feed.scrollTop;
+  cardEls.forEach((card, i) => {
+    if (card.offsetTop <= scrollTop + window.innerHeight / 2) current = i;
+  });
+  return current;
+}
+
+const saved = loadState();
+let currentFilter = saved.filter || "all";
+let isShuffled = saved.shuffled || false;
 
 function shuffle(arr) {
   const a = [...arr];
@@ -345,6 +371,7 @@ function renderCards() {
   `).join("");
   updateCounter();
   feed.scrollTop = 0;
+  saveState(0);
 }
 
 function highlightSyntax(code) {
@@ -373,6 +400,7 @@ function updateCounter() {
     if (card.offsetTop <= scrollTop + window.innerHeight / 2) current = i + 1;
   });
   document.getElementById("counter").textContent = `${current} / ${total}`;
+  saveState(current - 1);
 }
 
 // Filter buttons
@@ -395,8 +423,28 @@ document.getElementById("shuffleBtn").addEventListener("click", () => {
 // Update counter on scroll
 document.getElementById("feed").addEventListener("scroll", updateCounter);
 
-// Initial render
-renderCards();
+// Initial render — restore saved state
+(function init() {
+  // Activate saved filter button
+  if (currentFilter !== "all") {
+    document.querySelectorAll(".filter-btn").forEach(b => {
+      b.classList.remove("active");
+      if (b.dataset.filter === currentFilter) b.classList.add("active");
+    });
+  }
+  // Activate shuffle visual
+  if (isShuffled) {
+    document.getElementById("shuffleBtn").style.background = "#58a6ff";
+  }
+  renderCards();
+  // Scroll to saved card
+  if (saved.cardIndex > 0) {
+    const cardEls = document.getElementById("feed").querySelectorAll(".card");
+    if (cardEls[saved.cardIndex]) {
+      cardEls[saved.cardIndex].scrollIntoView();
+    }
+  }
+})();
 </script>
 </body>
 </html>
