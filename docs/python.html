@@ -117,6 +117,13 @@
     overflow-y: auto;
   }
 
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
   .card-tag {
     display: inline-block;
     padding: 5px 12px;
@@ -125,8 +132,22 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 16px;
   }
+
+  .fav-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+    opacity: 0.35;
+    transition: opacity 0.2s, transform 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .fav-btn:hover { opacity: 0.7; }
+  .fav-btn.active { opacity: 1; color: #e74c3c; }
 
   .card-title {
     font-size: 24px;
@@ -163,6 +184,82 @@
   }
 
   .card-takeaway strong { color: var(--accent); }
+
+  .card-links {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #2a2a3e;
+  }
+
+  .card-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .card-links a:hover { opacity: 0.8; }
+
+  .link-google {
+    background: #1e3a5f;
+    color: #58a6ff;
+  }
+
+  .link-chatgpt {
+    background: #1e4a3e;
+    color: #56d364;
+  }
+
+  .card-notes-toggle {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 6px 0;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .card-notes-toggle:hover { color: var(--text); }
+  .card-notes-toggle.has-notes { color: var(--accent); }
+
+  .card-notes-area {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .card-notes-area.open { display: block; }
+
+  .card-notes-area textarea {
+    width: 100%;
+    min-height: 80px;
+    background: var(--code-bg);
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 12px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  .card-notes-area textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
 
   .card-counter {
     position: fixed;
@@ -222,6 +319,7 @@
     <button class="filter-btn" data-filter="collections">Collections</button>
     <button class="filter-btn" data-filter="comprehensions">Comps</button>
     <button class="filter-btn" data-filter="itertools">Itertools</button>
+    <button class="filter-btn" data-filter="favorites" id="favFilterBtn">&#x2764; Favorites</button>
     <button class="shuffle-btn" id="shuffleBtn">&#x1F500; Shuffle</button>
   </div>
 </div>
@@ -312,6 +410,39 @@ const cards = [
 ];
 
 const STORAGE_KEY = "flashcards_python";
+const FAV_KEY = "flashcards_python_favs";
+const NOTES_KEY = "flashcards_python_notes";
+
+function loadNotes() {
+  try { return JSON.parse(localStorage.getItem(NOTES_KEY)) || {}; } catch { return {}; }
+}
+
+function saveNote(title, text) {
+  const notes = loadNotes();
+  if (text.trim()) notes[title] = text;
+  else delete notes[title];
+  localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+}
+
+function getNote(title) {
+  return loadNotes()[title] || '';
+}
+
+function saveFavorites() {
+  localStorage.setItem(FAV_KEY, JSON.stringify([...favorites]));
+}
+
+function loadFavorites() {
+  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY)) || []); } catch { return new Set(); }
+}
+
+const favorites = loadFavorites();
+
+function toggleFavorite(title) {
+  if (favorites.has(title)) favorites.delete(title);
+  else favorites.add(title);
+  saveFavorites();
+}
 
 function saveState(cardIndex) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -350,25 +481,42 @@ function shuffle(arr) {
 }
 
 function getFiltered() {
-  let filtered = currentFilter === "all"
-    ? [...cards]
-    : cards.filter(c => c.cat === currentFilter);
+  let filtered;
+  if (currentFilter === "all") filtered = [...cards];
+  else if (currentFilter === "favorites") filtered = cards.filter(c => favorites.has(c.title));
+  else filtered = cards.filter(c => c.cat === currentFilter);
   return isShuffled ? shuffle(filtered) : filtered;
 }
 
 function renderCards() {
   const feed = document.getElementById("feed");
   const filtered = getFiltered();
-  feed.innerHTML = filtered.map((c, i) => `
+  feed.innerHTML = filtered.map((c, i) => {
+    const isFav = favorites.has(c.title);
+    const cardContent = c.title + '\n\n' + c.code + '\n\n' + c.tip;
+    const query = encodeURIComponent(cardContent + ' Python');
+    const chatPrompt = encodeURIComponent('Explain and discuss this Python concept in detail:\n\n' + cardContent);
+    return `
     <div class="card" data-index="${i}">
       <div class="card-inner">
-        <span class="card-tag tag-${c.cat}">${c.cat}</span>
+        <div class="card-header">
+          <span class="card-tag tag-${c.cat}">${c.cat}</span>
+          <button class="fav-btn${isFav ? ' active' : ''}" data-title="${c.title.replace(/"/g, '&quot;')}" onclick="handleFav(this)">&#x2764;</button>
+        </div>
         <h2 class="card-title">${c.title}</h2>
         <div class="card-code"><code>${highlightSyntax(c.code)}</code></div>
         <p class="card-takeaway">${c.tip}</p>
+        <div class="card-links">
+          <a class="link-google" href="https://www.google.com/search?q=${query}" target="_blank" rel="noopener">&#x1F50D; Google</a>
+          <a class="link-chatgpt" href="https://chatgpt.com/?q=${chatPrompt}" target="_blank" rel="noopener">&#x1F4AC; ChatGPT</a>
+        </div>
+        <button class="card-notes-toggle${getNote(c.title) ? ' has-notes' : ''}" onclick="toggleNotes(this)">&#x1F4DD; ${getNote(c.title) ? 'My Notes' : 'Add Notes'}</button>
+        <div class="card-notes-area">
+          <textarea placeholder="Write your notes here..." data-title="${c.title.replace(/"/g, '&quot;')}" oninput="handleNoteInput(this)">${getNote(c.title).replace(/</g, '&lt;')}</textarea>
+        </div>
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
   updateCounter();
   feed.scrollTop = 0;
   saveState(0);
@@ -401,6 +549,36 @@ function updateCounter() {
   });
   document.getElementById("counter").textContent = `${current} / ${total}`;
   saveState(current - 1);
+}
+
+function toggleNotes(btn) {
+  const area = btn.nextElementSibling;
+  area.classList.toggle('open');
+  if (area.classList.contains('open')) {
+    area.querySelector('textarea').focus();
+  }
+}
+
+function handleNoteInput(textarea) {
+  const title = textarea.dataset.title;
+  saveNote(title, textarea.value);
+  const toggle = textarea.closest('.card-inner').querySelector('.card-notes-toggle');
+  if (textarea.value.trim()) {
+    toggle.classList.add('has-notes');
+    toggle.innerHTML = '&#x1F4DD; My Notes';
+  } else {
+    toggle.classList.remove('has-notes');
+    toggle.innerHTML = '&#x1F4DD; Add Notes';
+  }
+}
+
+function handleFav(btn) {
+  const title = btn.dataset.title;
+  toggleFavorite(title);
+  btn.classList.toggle("active");
+  if (currentFilter === "favorites" && !favorites.has(title)) {
+    renderCards();
+  }
 }
 
 // Filter buttons

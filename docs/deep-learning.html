@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Deep Learning Flashcards</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -115,6 +117,13 @@
     overflow-y: auto;
   }
 
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
   .card-tag {
     display: inline-block;
     padding: 5px 12px;
@@ -123,8 +132,22 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 16px;
   }
+
+  .fav-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+    opacity: 0.35;
+    transition: opacity 0.2s, transform 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .fav-btn:hover { opacity: 0.7; }
+  .fav-btn.active { opacity: 1; color: #e74c3c; }
 
   .card-title {
     font-size: 24px;
@@ -134,15 +157,37 @@
     line-height: 1.3;
   }
 
-  .card-code {
+  .card-math {
     background: var(--code-bg);
     border-radius: 10px;
-    padding: 16px;
+    padding: 20px 16px;
     margin-bottom: 18px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    font-size: 14.5px;
-    line-height: 1.55;
+    border: 1px solid #21262d;
+    color: #c9d1d9;
+    line-height: 2;
+  }
+
+  .card-math .katex { font-size: 1.5em; }
+  .card-math .math-line { margin: 8px 0; }
+  .card-math .math-label {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #8b949e;
+    font-size: 16px;
+    display: block;
+    margin: 12px 0 4px;
+  }
+
+  .card-code {
+    background: var(--code-bg);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 18px;
+    line-height: 1.65;
     border: 1px solid #21262d;
   }
 
@@ -153,14 +198,90 @@
   }
 
   .card-takeaway {
-    font-size: 16px;
+    font-size: 19px;
     color: var(--text-dim);
-    line-height: 1.55;
+    line-height: 1.65;
     border-top: 1px solid #2a2a3e;
     padding-top: 16px;
   }
 
   .card-takeaway strong { color: var(--accent); }
+
+  .card-links {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #2a2a3e;
+  }
+
+  .card-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .card-links a:hover { opacity: 0.8; }
+
+  .link-google {
+    background: #1e3a5f;
+    color: #58a6ff;
+  }
+
+  .link-chatgpt {
+    background: #1e4a3e;
+    color: #56d364;
+  }
+
+  .card-notes-toggle {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 6px 0;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .card-notes-toggle:hover { color: var(--text); }
+  .card-notes-toggle.has-notes { color: var(--accent); }
+
+  .card-notes-area {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .card-notes-area.open { display: block; }
+
+  .card-notes-area textarea {
+    width: 100%;
+    min-height: 80px;
+    background: var(--code-bg);
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 12px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  .card-notes-area textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
 
   .card-counter {
     position: fixed;
@@ -173,16 +294,21 @@
 
   @media (max-width: 380px) {
     .card-inner { padding: 20px 16px; }
-    .card-title { font-size: 21px; }
-    .card-code { font-size: 13px; padding: 14px; }
-    .card-takeaway { font-size: 15px; }
+    .card-title { font-size: 24px; }
+    .card-code { font-size: 16px; padding: 16px; }
+    .card-math { padding: 18px 14px; }
+    .card-math .katex { font-size: 1.35em; }
+    .card-math .math-label { font-size: 15px; }
+    .card-takeaway { font-size: 17px; }
   }
 
   @media (min-width: 768px) {
-    .card-inner { max-width: 640px; padding: 36px 32px; }
-    .card-title { font-size: 28px; }
-    .card-code { font-size: 16px; }
-    .card-takeaway { font-size: 17px; }
+    .card-inner { max-width: 700px; padding: 40px 36px; }
+    .card-title { font-size: 32px; }
+    .card-code { font-size: 20px; }
+    .card-math .katex { font-size: 1.6em; }
+    .card-math .math-label { font-size: 17px; }
+    .card-takeaway { font-size: 20px; }
   }
 
   /* Category colors */
@@ -195,13 +321,6 @@
   .tag-cnns          { background: #3e3a1e; color: #d4c456; }
   .tag-rnns          { background: #2e1e4a; color: #c490f5; }
   .tag-transformers  { background: #4a2e1e; color: #f0905f; }
-
-  .kw { color: #ff7b72; }
-  .fn { color: #d2a8ff; }
-  .st { color: #a5d6ff; }
-  .cm { color: #8b949e; }
-  .nu { color: #79c0ff; }
-  .op { color: #ff7b72; }
 </style>
 </head>
 <body>
@@ -219,6 +338,7 @@
     <button class="filter-btn" data-filter="cnns">CNNs</button>
     <button class="filter-btn" data-filter="rnns">RNNs</button>
     <button class="filter-btn" data-filter="transformers">Transformers</button>
+    <button class="filter-btn" data-filter="favorites" id="favFilterBtn">&#x2764; Favorites</button>
     <button class="shuffle-btn" id="shuffleBtn">&#x1F500; Shuffle</button>
   </div>
 </div>
@@ -227,84 +347,472 @@
 <div class="card-counter" id="counter"></div>
 
 <script>
+// Cards with optional `math` field (array of lines, each is {tex:"..."} or {label:"..."} or {text:"..."})
+// Cards without `math` use `code` (plain text block)
 const cards = [
   // === FUNDAMENTALS ===
-  {cat:"fundamentals", title:"The Neuron", code:`output = activation(w1*x1 + w2*x2 + ... + b)\n\n  x1 --w1--\\\n  x2 --w2--->(sum + b)-->[activation]-->output\n  x3 --w3--/`, tip:"A neuron computes a weighted sum of inputs plus a bias, then applies a non-linear activation function."},
-  {cat:"fundamentals", title:"Layers & Depth", code:`Input (784)  -->  Hidden (256)  -->  Output (10)\n\nEach arrow = weight matrix + bias vector\nHidden layer: h = activation(W*x + b)\nOutput layer: y = softmax(W*h + b)`, tip:"Deep networks stack multiple layers. Each layer learns increasingly abstract representations of the input."},
-  {cat:"fundamentals", title:"Forward Pass", code:`# Layer 1\nz1 = W1 @ x + b1\na1 = relu(z1)\n\n# Layer 2\nz2 = W2 @ a1 + b2\na2 = softmax(z2)\n\nloss = cross_entropy(a2, y_true)`, tip:"The forward pass computes predictions by pushing data through layers. The loss measures how wrong the prediction is."},
+  {cat:"fundamentals", title:"The Neuron", math:[
+    {tex:"y = f\\!\\left(\\sum_{i=1}^{n} w_i x_i + b\\right)"},
+    {label:"where"},
+    {tex:"w_i = \\text{weights}, \\quad b = \\text{bias}, \\quad f = \\text{activation}"},
+    {label:"diagram"},
+    {text:"x\u2081 \u2014w\u2081\u2192 [\u03A3 + b] \u2192 [f] \u2192 output\nx\u2082 \u2014w\u2082\u2197\nx\u2083 \u2014w\u2083\u2197"},
+  ], tip:"A neuron computes a weighted sum of inputs plus a bias, then applies a non-linear activation function."},
+  {cat:"fundamentals", title:"Layers & Depth", math:[
+    {text:"Input (784)  \u2192  Hidden (256)  \u2192  Output (10)"},
+    {label:"hidden layer"},
+    {tex:"\\mathbf{h} = f(\\mathbf{W}\\mathbf{x} + \\mathbf{b})"},
+    {label:"output layer"},
+    {tex:"\\mathbf{y} = \\text{softmax}(\\mathbf{W}\\mathbf{h} + \\mathbf{b})"},
+  ], tip:"Deep networks stack multiple layers. Each layer learns increasingly abstract representations of the input."},
+  {cat:"fundamentals", title:"Forward Pass", math:[
+    {label:"layer 1"},
+    {tex:"\\mathbf{z}_1 = \\mathbf{W}_1 \\mathbf{x} + \\mathbf{b}_1, \\quad \\mathbf{a}_1 = \\text{ReLU}(\\mathbf{z}_1)"},
+    {label:"layer 2"},
+    {tex:"\\mathbf{z}_2 = \\mathbf{W}_2 \\mathbf{a}_1 + \\mathbf{b}_2, \\quad \\mathbf{a}_2 = \\text{softmax}(\\mathbf{z}_2)"},
+    {label:"loss"},
+    {tex:"\\mathcal{L} = \\text{CrossEntropy}(\\mathbf{a}_2,\\; \\mathbf{y}_{\\text{true}})"},
+  ], tip:"The forward pass computes predictions by pushing data through layers. The loss measures how wrong the prediction is."},
   {cat:"fundamentals", title:"Parameters vs Hyperparameters", code:`Parameters (learned):\n  - Weights W, biases b\n  - Updated by optimizer during training\n\nHyperparameters (set by you):\n  - Learning rate, batch size, epochs\n  - Number of layers, hidden units\n  - Not learned from data`, tip:"Parameters are what the network learns. Hyperparameters are design choices you make before training."},
   {cat:"fundamentals", title:"Universal Approximation", code:`A single hidden layer with enough neurons\ncan approximate ANY continuous function.\n\nBut in practice:\n- Deeper > wider (more parameter efficient)\n- 2-3 hidden layers solve most problems\n- Very deep nets need special tricks\n  (residual connections, normalization)`, tip:"Depth is more parameter-efficient than width. One wide layer can approximate anything in theory, but deep networks do it with far fewer parameters."},
   {cat:"fundamentals", title:"Epochs, Batches, Iterations", code:`Dataset: 10,000 samples\nBatch size: 100\n\n1 iteration  = process 1 batch (100 samples)\n1 epoch      = process all batches (100 iterations)\n10 epochs    = 1,000 total iterations`, tip:"An epoch is one full pass through the dataset. Mini-batch gradient descent updates weights after each batch, not after each sample."},
   {cat:"fundamentals", title:"Train / Val / Test Split", code:`Dataset split:\n  Train: 70-80%  (learn parameters)\n  Val:   10-15%  (tune hyperparameters)\n  Test:  10-15%  (final evaluation)\n\nGolden rule: NEVER tune on test set.\nTest set = used exactly once at the end.`, tip:"The validation set guides hyperparameter choices. The test set gives an unbiased estimate of real-world performance."},
 
   // === ACTIVATIONS ===
-  {cat:"activations", title:"Sigmoid", code:`sigmoid(z) = 1 / (1 + e^(-z))\n\nOutput range: (0, 1)\n\nPros: Probabilistic interpretation\nCons: Vanishing gradients at extremes\n      Output not zero-centered\n      exp() is expensive`, tip:"Sigmoid squashes to (0,1). Mostly used in output layers for binary classification. Avoid in hidden layers due to vanishing gradients."},
-  {cat:"activations", title:"Tanh", code:`tanh(z) = (e^z - e^(-z)) / (e^z + e^(-z))\n\nOutput range: (-1, 1)\n\nPros: Zero-centered output\nCons: Still has vanishing gradient problem\n      Saturates at large |z|`, tip:"Tanh is zero-centered (unlike sigmoid) which helps optimization, but still suffers from vanishing gradients at saturation."},
-  {cat:"activations", title:"ReLU", code:`ReLU(z) = max(0, z)\n\nOutput range: [0, infinity)\n\nPros: Fast, no vanishing gradient (z>0)\n      Sparse activation\nCons: \"Dying ReLU\" - neurons stuck at 0\n      Not zero-centered`, tip:"ReLU is the default activation for hidden layers. Simple, fast, and works well. Watch out for dying neurons with high learning rates."},
-  {cat:"activations", title:"Leaky ReLU & Variants", code:`Leaky ReLU(z) = z if z > 0\n                0.01*z if z <= 0\n\nPReLU:  slope is a learnable parameter\nELU:    alpha*(e^z - 1) for z <= 0\nGELU:   z * sigmoid(1.702*z)  [approx]`, tip:"Leaky ReLU fixes dying neurons by allowing a small gradient when z < 0. GELU is popular in transformers."},
-  {cat:"activations", title:"Softmax", code:`softmax(z_i) = e^(z_i) / sum(e^(z_j))\n\nInput:  [2.0, 1.0, 0.1]\nOutput: [0.659, 0.242, 0.099]\n\nProperties:\n  - All outputs in (0, 1)\n  - Outputs sum to 1\n  - Amplifies differences`, tip:"Softmax converts raw scores (logits) into a probability distribution. Used in the output layer for multi-class classification."},
+  {cat:"activations", title:"Sigmoid", math:[
+    {tex:"\\sigma(z) = \\frac{1}{1 + e^{-z}}"},
+    {label:"output range: (0, 1)"},
+    {tex:"\\sigma'(z) = \\sigma(z)\\,(1 - \\sigma(z))"},
+    {label:"max derivative = 0.25 at z = 0"},
+    {text:"Pros: Probabilistic interpretation\nCons: Vanishing gradients at extremes\n      Output not zero-centered"},
+  ], tip:"Sigmoid squashes to (0,1). Mostly used in output layers for binary classification. Avoid in hidden layers due to vanishing gradients."},
+  {cat:"activations", title:"Tanh", math:[
+    {tex:"\\tanh(z) = \\frac{e^z - e^{-z}}{e^z + e^{-z}}"},
+    {label:"output range: (-1, 1)"},
+    {tex:"\\tanh'(z) = 1 - \\tanh^2(z)"},
+    {text:"Pros: Zero-centered output\nCons: Still has vanishing gradient problem\n      Saturates at large |z|"},
+  ], tip:"Tanh is zero-centered (unlike sigmoid) which helps optimization, but still suffers from vanishing gradients at saturation."},
+  {cat:"activations", title:"ReLU", math:[
+    {tex:"\\text{ReLU}(z) = \\max(0,\\, z)"},
+    {label:"output range: [0, \u221E)"},
+    {tex:"\\text{ReLU}'(z) = \\begin{cases} 1 & z > 0 \\\\ 0 & z \\leq 0 \\end{cases}"},
+    {text:"Pros: Fast, no vanishing gradient (z>0)\n      Sparse activation\nCons: \"Dying ReLU\" \u2014 neurons stuck at 0"},
+  ], tip:"ReLU is the default activation for hidden layers. Simple, fast, and works well. Watch out for dying neurons with high learning rates."},
+  {cat:"activations", title:"Leaky ReLU & Variants", math:[
+    {tex:"\\text{LeakyReLU}(z) = \\begin{cases} z & z > 0 \\\\ \\alpha z & z \\leq 0 \\end{cases} \\quad (\\alpha = 0.01)"},
+    {label:"variants"},
+    {tex:"\\text{PReLU: } \\alpha \\text{ is learnable}"},
+    {tex:"\\text{ELU}(z) = \\begin{cases} z & z > 0 \\\\ \\alpha(e^z - 1) & z \\leq 0 \\end{cases}"},
+    {tex:"\\text{GELU}(z) \\approx z \\cdot \\sigma(1.702\\,z)"},
+  ], tip:"Leaky ReLU fixes dying neurons by allowing a small gradient when z < 0. GELU is popular in transformers."},
+  {cat:"activations", title:"Softmax", math:[
+    {tex:"\\text{softmax}(z_i) = \\frac{e^{z_i}}{\\displaystyle\\sum_{j} e^{z_j}}"},
+    {label:"example"},
+    {tex:"[2.0,\\; 1.0,\\; 0.1] \\;\\rightarrow\\; [0.659,\\; 0.242,\\; 0.099]"},
+    {text:"Properties:\n  - All outputs in (0, 1)\n  - Outputs sum to 1\n  - Amplifies differences"},
+  ], tip:"Softmax converts raw scores (logits) into a probability distribution. Used in the output layer for multi-class classification."},
 
   // === LOSS FUNCTIONS ===
-  {cat:"loss", title:"Mean Squared Error (MSE)", code:`MSE = (1/n) * sum((y_pred - y_true)^2)\n\nExample:\n  y_true = [1.0, 2.0, 3.0]\n  y_pred = [1.1, 2.5, 2.8]\n  MSE = (0.01 + 0.25 + 0.04) / 3 = 0.1`, tip:"MSE is the go-to loss for regression. Penalizes large errors heavily due to squaring. Sensitive to outliers."},
-  {cat:"loss", title:"Binary Cross-Entropy", code:`BCE = -(1/n) * sum(\n  y*log(p) + (1-y)*log(1-p)\n)\n\ny=1, p=0.9: -log(0.9) = 0.105  (low loss)\ny=1, p=0.1: -log(0.1) = 2.303  (high loss)`, tip:"BCE is used for binary classification. Penalizes confident wrong predictions heavily. Pair with sigmoid output."},
-  {cat:"loss", title:"Categorical Cross-Entropy", code:`CE = -sum(y_true * log(y_pred))\n\ny_true = [0, 1, 0]  (one-hot)\ny_pred = [0.1, 0.8, 0.1]\nCE = -log(0.8) = 0.223\n\ny_pred = [0.1, 0.2, 0.7]\nCE = -log(0.2) = 1.609`, tip:"Cross-entropy measures how different the predicted distribution is from the true distribution. Only the true class probability matters."},
+  {cat:"loss", title:"Mean Squared Error (MSE)", math:[
+    {tex:"\\text{MSE} = \\frac{1}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i)^2"},
+    {label:"example"},
+    {tex:"y = [1.0,\\; 2.0,\\; 3.0], \\quad \\hat{y} = [1.1,\\; 2.5,\\; 2.8]"},
+    {tex:"\\text{MSE} = \\frac{0.01 + 0.25 + 0.04}{3} = 0.1"},
+  ], tip:"MSE is the go-to loss for regression. Penalizes large errors heavily due to squaring. Sensitive to outliers."},
+  {cat:"loss", title:"Binary Cross-Entropy", math:[
+    {tex:"\\text{BCE} = -\\frac{1}{n} \\sum_{i=1}^{n} \\Big[ y_i \\log(p_i) + (1-y_i)\\log(1-p_i) \\Big]"},
+    {label:"examples"},
+    {tex:"y=1,\\; p=0.9: \\quad -\\log(0.9) = 0.105 \\;\\text{(low loss)}"},
+    {tex:"y=1,\\; p=0.1: \\quad -\\log(0.1) = 2.303 \\;\\text{(high loss)}"},
+  ], tip:"BCE is used for binary classification. Penalizes confident wrong predictions heavily. Pair with sigmoid output."},
+  {cat:"loss", title:"Categorical Cross-Entropy", math:[
+    {tex:"\\text{CE} = -\\sum_{c=1}^{C} y_c \\,\\log(\\hat{y}_c)"},
+    {label:"with one-hot y, only the true class matters"},
+    {tex:"\\mathbf{y} = [0,1,0], \\quad \\hat{\\mathbf{y}} = [0.1, 0.8, 0.1]"},
+    {tex:"\\text{CE} = -\\log(0.8) = 0.223"},
+  ], tip:"Cross-entropy measures how different the predicted distribution is from the true distribution. Only the true class probability matters."},
   {cat:"loss", title:"Loss vs Metric", code:`Loss function:\n  - Must be differentiable\n  - Used by optimizer during training\n  - e.g. cross-entropy, MSE\n\nMetric:\n  - For human evaluation\n  - Need not be differentiable\n  - e.g. accuracy, F1, BLEU`, tip:"You optimize the loss, but evaluate with metrics. Accuracy isn't differentiable, so you can't use it as a loss function directly."},
-  {cat:"loss", title:"Softmax + Cross-Entropy Trick", code:`# Numerically unstable:\nloss = -log(softmax(logits)[true_class])\n\n# Stable (combined):\nloss = -logits[true_class] + log(sum(exp(logits)))\n\n# Frameworks do this automatically:\nloss = CrossEntropyLoss(logits, labels)`, tip:"Always pass raw logits to cross-entropy loss, not softmax outputs. The combined computation is numerically stable via the log-sum-exp trick."},
+  {cat:"loss", title:"Softmax + Cross-Entropy Trick", math:[
+    {label:"numerically unstable"},
+    {tex:"\\mathcal{L} = -\\log\\!\\left(\\frac{e^{z_k}}{\\sum_j e^{z_j}}\\right)"},
+    {label:"stable (combined)"},
+    {tex:"\\mathcal{L} = -z_k + \\log\\!\\left(\\sum_j e^{z_j}\\right)"},
+    {text:"Frameworks do this automatically:\nloss = CrossEntropyLoss(logits, labels)"},
+  ], tip:"Always pass raw logits to cross-entropy loss, not softmax outputs. The combined computation is numerically stable via the log-sum-exp trick."},
 
   // === BACKPROPAGATION ===
-  {cat:"backprop", title:"Chain Rule", code:`y = f(g(x))\n\ndy/dx = dy/dg * dg/dx\n\nNeural net: Loss -> Layer3 -> Layer2 -> Layer1\n\ndLoss/dW1 = dLoss/da3 * da3/dz3 *\n            dz3/da2 * da2/dz2 *\n            dz2/da1 * da1/dz1 *\n            dz1/dW1`, tip:"Backpropagation is just the chain rule applied recursively. Gradients flow backward from loss to each parameter."},
-  {cat:"backprop", title:"Gradient Descent Update", code:`# For each parameter theta:\ntheta = theta - learning_rate * dLoss/dtheta\n\nlearning_rate = 0.01 (typical starting point)\n\nToo high: diverges, loss explodes\nToo low:  very slow convergence\nJust right: smooth decrease in loss`, tip:"The learning rate is the most important hyperparameter. Start with 1e-3 for Adam, 1e-2 for SGD. Reduce if loss oscillates."},
-  {cat:"backprop", title:"Vanishing Gradients", code:`Gradient through sigmoid/tanh:\n  sigmoid'(z) = sigmoid(z)*(1 - sigmoid(z))\n  max gradient = 0.25 (at z=0)\n\n10 layers: 0.25^10 = 9.5e-7\n\nEarly layers barely learn!\n\nFixes: ReLU, residual connections,\n       batch norm, LSTM/GRU for RNNs`, tip:"When gradients multiply through many layers, they can shrink exponentially. This makes early layers learn extremely slowly."},
-  {cat:"backprop", title:"Exploding Gradients", code:`If gradients > 1 at each layer:\n  1.5^50 = 637,621,500\n\nSymptoms: NaN loss, huge weight updates\n\nFixes:\n  - Gradient clipping: clip to max norm\n  - Proper weight initialization\n  - Batch normalization\n  - Lower learning rate`, tip:"Exploding gradients cause unstable training. Gradient clipping (limiting the gradient norm) is a simple and effective fix."},
+  {cat:"backprop", title:"Chain Rule", math:[
+    {tex:"y = f(g(x)) \\implies \\frac{dy}{dx} = \\frac{dy}{dg} \\cdot \\frac{dg}{dx}"},
+    {label:"through a neural network"},
+    {tex:"\\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{W}_1} = \\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{a}_3} \\cdot \\frac{\\partial \\mathbf{a}_3}{\\partial \\mathbf{z}_3} \\cdot \\frac{\\partial \\mathbf{z}_3}{\\partial \\mathbf{a}_2} \\cdots \\frac{\\partial \\mathbf{z}_1}{\\partial \\mathbf{W}_1}"},
+  ], tip:"Backpropagation is just the chain rule applied recursively. Gradients flow backward from loss to each parameter."},
+  {cat:"backprop", title:"Gradient Descent Update", math:[
+    {tex:"\\theta \\leftarrow \\theta - \\eta \\, \\frac{\\partial \\mathcal{L}}{\\partial \\theta}"},
+    {label:"learning rate \u03B7"},
+    {text:"Too high: diverges, loss explodes\nToo low:  very slow convergence\nJust right: smooth decrease in loss"},
+    {label:"typical starting points"},
+    {tex:"\\eta = 10^{-3} \\text{ (Adam)}, \\quad \\eta = 10^{-2} \\text{ (SGD)}"},
+  ], tip:"The learning rate is the most important hyperparameter. Start with 1e-3 for Adam, 1e-2 for SGD. Reduce if loss oscillates."},
+  {cat:"backprop", title:"Vanishing Gradients", math:[
+    {tex:"\\sigma'(z) = \\sigma(z)(1-\\sigma(z)) \\leq 0.25"},
+    {label:"through 10 layers"},
+    {tex:"0.25^{10} = 9.5 \\times 10^{-7}"},
+    {text:"Early layers barely learn!\n\nFixes: ReLU, residual connections,\n       batch norm, LSTM/GRU for RNNs"},
+  ], tip:"When gradients multiply through many layers, they can shrink exponentially. This makes early layers learn extremely slowly."},
+  {cat:"backprop", title:"Exploding Gradients", math:[
+    {label:"if gradient factor > 1 at each layer"},
+    {tex:"1.5^{50} = 637{,}621{,}500"},
+    {text:"Symptoms: NaN loss, huge weight updates\n\nFixes:\n  - Gradient clipping: clip to max norm\n  - Proper weight initialization\n  - Batch normalization\n  - Lower learning rate"},
+  ], tip:"Exploding gradients cause unstable training. Gradient clipping (limiting the gradient norm) is a simple and effective fix."},
   {cat:"backprop", title:"Computation Graph", code:`x  -->  [*W1] --> [+b1] --> [ReLU] --> z\n                                        |\n        loss <-- [CE] <-- [softmax] <-- [*W2+b2]\n\nForward: compute values left to right\nBackward: compute gradients right to left\n\nEach node stores values for backward pass`, tip:"Frameworks build a computation graph during the forward pass, then traverse it backward to compute gradients. This is automatic differentiation."},
-  {cat:"backprop", title:"Weight Initialization", code:`# Too small: vanishing signals\n# Too large: exploding signals\n\nXavier/Glorot (sigmoid/tanh):\n  W ~ N(0, 2/(fan_in + fan_out))\n\nHe/Kaiming (ReLU):\n  W ~ N(0, 2/fan_in)\n\nfan_in = input units, fan_out = output units`, tip:"Proper initialization keeps signal variance stable across layers. Use He init for ReLU networks, Xavier for sigmoid/tanh."},
+  {cat:"backprop", title:"Weight Initialization", math:[
+    {label:"Xavier / Glorot (sigmoid, tanh)"},
+    {tex:"W \\sim \\mathcal{N}\\!\\left(0,\\; \\frac{2}{n_{\\text{in}} + n_{\\text{out}}}\\right)"},
+    {label:"He / Kaiming (ReLU)"},
+    {tex:"W \\sim \\mathcal{N}\\!\\left(0,\\; \\frac{2}{n_{\\text{in}}}\\right)"},
+  ], tip:"Proper initialization keeps signal variance stable across layers. Use He init for ReLU networks, Xavier for sigmoid/tanh."},
 
   // === OPTIMIZERS ===
-  {cat:"optimizers", title:"SGD (Stochastic Gradient Descent)", code:`# Vanilla SGD:\nW = W - lr * gradient\n\n# SGD with Momentum:\nv = momentum * v - lr * gradient\nW = W + v\n\nmomentum = 0.9 (typical)\n\nMomentum smooths updates and helps\nescape shallow local minima.`, tip:"SGD with momentum is a strong baseline. It often generalizes better than Adam but requires more tuning of the learning rate."},
-  {cat:"optimizers", title:"Adam", code:`# Maintains running averages:\nm = beta1*m + (1-beta1)*gradient     # 1st moment\nv = beta2*v + (1-beta2)*gradient^2   # 2nd moment\n\n# Bias correction:\nm_hat = m / (1 - beta1^t)\nv_hat = v / (1 - beta2^t)\n\nW = W - lr * m_hat / (sqrt(v_hat) + eps)`, tip:"Adam adapts learning rates per-parameter. Default (lr=1e-3, beta1=0.9, beta2=0.999) works well for most problems. The most popular optimizer."},
-  {cat:"optimizers", title:"Learning Rate Schedules", code:`Step decay:\n  lr = lr * 0.1 every 30 epochs\n\nCosine annealing:\n  lr = lr_min + 0.5*(lr_max-lr_min)*(1+cos(pi*t/T))\n\nWarmup + decay:\n  Linearly increase lr for first N steps,\n  then decay. Used in transformer training.`, tip:"Learning rate scheduling often matters more than the choice of optimizer. Warmup helps stabilize early training in large models."},
-  {cat:"optimizers", title:"AdamW (Decoupled Weight Decay)", code:`# Adam: L2 added to loss\ngrad = grad + weight_decay * W  # coupled\n\n# AdamW: decay applied directly to W\nW = W - lr * adam_update\nW = W - lr * weight_decay * W   # decoupled\n\nAdamW is preferred for transformers.`, tip:"AdamW fixes a subtle bug in Adam's weight decay. It's the standard optimizer for transformer training."},
-  {cat:"optimizers", title:"Gradient Clipping", code:`# Clip by value:\ngrad = clamp(grad, -max_val, max_val)\n\n# Clip by norm (preferred):\nnorm = sqrt(sum(grad^2))\nif norm > max_norm:\n    grad = grad * (max_norm / norm)\n\nTypical max_norm: 1.0 or 5.0`, tip:"Gradient clipping prevents exploding gradients. Clip by norm preserves gradient direction, which is better than clip by value."},
+  {cat:"optimizers", title:"The Optimization Problem", math:[
+    {label:"objective"},
+    {tex:"\\min_{\\boldsymbol{\\theta} \\in \\mathbb{R}^d} \\; L(\\boldsymbol{\\theta})"},
+    {label:"gradient descent"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta \\, \\nabla L(\\boldsymbol{\\theta}_t)"},
+    {label:"mini-batch gradient estimate"},
+    {tex:"g_t = \\nabla_{\\boldsymbol{\\theta}} L_{\\mathcal{B}_t}(\\boldsymbol{\\theta}_t)"},
+    {text:"\u03B8 = model parameters (weights & biases)\nd = number of parameters\nL(\u03B8) = loss function\n\u03B7 = learning rate (step size)\n\u2207L = gradient of loss w.r.t. \u03B8\ng_t = gradient estimated from mini-batch B_t\nt = time step (iteration)"},
+  ], tip:"Training a neural network means minimizing the empirical risk L(\u03B8). All deep learning optimizers are variations on gradient descent with a mini-batch gradient estimate."},
+  {cat:"optimizers", title:"SGD (Stochastic Gradient Descent)", math:[
+    {label:"update rule"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta \\, g_t"},
+    {text:"\u03B8_t = parameters at step t\n\u03B7 = learning rate\ng_t = mini-batch gradient at step t"},
+    {label:"properties"},
+    {text:"\u2022 Low memory cost (no extra state)\n\u2022 Strong theoretical convergence guarantees\n\u2022 Often better generalization than adaptive methods\n\u2022 Sensitive to learning rate choice"},
+  ], tip:"Vanilla SGD is the simplest optimizer. Its implicit regularization through gradient noise often leads to better generalization than adaptive methods."},
+  {cat:"optimizers", title:"Momentum SGD", math:[
+    {label:"velocity update"},
+    {tex:"v_t = \\beta \\, v_{t-1} + g_t"},
+    {label:"parameter update"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta \\, v_t"},
+    {tex:"\\beta \\in [0, 1), \\quad \\text{typically } \\beta = 0.9"},
+    {text:"v_t = velocity (accumulated gradient direction)\n\u03B2 = momentum coefficient (how much past\n    velocity is retained, typically 0.9)\ng_t = current mini-batch gradient\n\u03B7 = learning rate"},
+  ], tip:"Momentum accumulates past gradients into a velocity vector, smoothing updates and accelerating convergence through narrow ravines in the loss landscape."},
+  {cat:"optimizers", title:"Nesterov Accelerated Gradient", math:[
+    {label:"lookahead gradient"},
+    {tex:"v_t = \\beta \\, v_{t-1} + \\nabla L(\\boldsymbol{\\theta}_t - \\eta \\beta \\, v_{t-1})"},
+    {label:"parameter update"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta \\, v_t"},
+    {text:"v_t = velocity vector\n\u03B2 = momentum coefficient\n\u03B8_t \u2212 \u03B7\u03B2v_{t\u22121} = lookahead position (where\n    momentum would take us next)\n\u2207L(...) = gradient evaluated at lookahead\n    position, not the current one"},
+  ], tip:"NAG looks ahead before computing the gradient, providing a corrective factor that reduces overshooting. Theoretically faster convergence for convex problems."},
+  {cat:"optimizers", title:"AdaGrad", math:[
+    {label:"accumulated squared gradients"},
+    {tex:"G_t = \\sum_{i=1}^{t} g_i^2"},
+    {label:"update rule"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\frac{\\eta}{\\sqrt{G_t} + \\epsilon} \\, g_t"},
+    {text:"G_t = sum of all past squared gradients\n    (per-parameter, grows monotonically)\n\u03B7 = global learning rate\n\u03B5 = small constant for numerical stability\n    (typically 1e-8)\ng_t = current gradient\n\u03B7/(\u221AG_t + \u03B5) = effective per-parameter LR"},
+  ], tip:"AdaGrad adapts learning rates per-parameter. Excellent for sparse gradients (NLP, embeddings), but the accumulated G_t causes learning rates to monotonically decrease, eventually stopping learning."},
+  {cat:"optimizers", title:"RMSProp", math:[
+    {label:"exponential moving average of squared gradients"},
+    {tex:"v_t = \\beta \\, v_{t-1} + (1 - \\beta) \\, g_t^2"},
+    {label:"update rule"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\frac{\\eta}{\\sqrt{v_t} + \\epsilon} \\, g_t"},
+    {tex:"\\beta = 0.9, \\quad \\eta = 0.001 \\text{ (typical)}"},
+    {text:"v_t = EMA of squared gradients (estimates\n    variance of recent gradients)\n\u03B2 = decay rate (how much history to keep)\ng_t\u00B2 = element-wise squared gradient\n\u03B5 = numerical stability constant (~1e-8)\n\u221Av_t = RMS of recent gradients (denominator)"},
+  ], tip:"RMSProp fixes AdaGrad's decaying learning rate by using an exponential moving average instead of accumulation. Proposed by Hinton in a Coursera lecture (unpublished)."},
+  {cat:"optimizers", title:"Adam", math:[
+    {label:"first moment (mean)"},
+    {tex:"m_t = \\beta_1 \\, m_{t-1} + (1 - \\beta_1) \\, g_t"},
+    {label:"second moment (variance)"},
+    {tex:"v_t = \\beta_2 \\, v_{t-1} + (1 - \\beta_2) \\, g_t^2"},
+    {label:"bias correction"},
+    {tex:"\\hat{m}_t = \\frac{m_t}{1 - \\beta_1^t}, \\quad \\hat{v}_t = \\frac{v_t}{1 - \\beta_2^t}"},
+    {label:"update"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta \\, \\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t} + \\epsilon}"},
+    {text:"m_t = 1st moment: EMA of gradients (momentum)\nv_t = 2nd moment: EMA of squared gradients\n\u03B2\u2081 = decay for 1st moment (default 0.9)\n\u03B2\u2082 = decay for 2nd moment (default 0.999)\nm\u0302_t, v\u0302_t = bias-corrected estimates (since\n    m\u2080=v\u2080=0, early values are biased low)\n\u03B7 = learning rate (default 1e-3)\n\u03B5 = stability constant (default 1e-8)"},
+  ], tip:"Adam combines momentum (1st moment) with RMSProp (2nd moment). Defaults: \u03B7=1e-3, \u03B2\u2081=0.9, \u03B2\u2082=0.999, \u03B5=1e-8. Bias correction is critical for early steps."},
+  {cat:"optimizers", title:"AdamW", math:[
+    {label:"decoupled weight decay"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta \\, \\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t} + \\epsilon} - \\eta \\lambda \\, \\boldsymbol{\\theta}_t"},
+    {label:"contrast with L2 regularization in Adam"},
+    {tex:"\\text{Adam + L2: } g_t \\leftarrow g_t + \\lambda \\boldsymbol{\\theta}_t \\quad \\text{(coupled)}"},
+    {text:"\u03BB = weight decay coefficient (e.g. 0.01)\n\u03B7\u03BBm\u0302_t/(\u221Av\u0302_t+\u03B5) = Adam gradient step\n\u03B7\u03BB\u03B8_t = direct weight decay (shrinks weights)\nIn L2: decay is inside g_t, gets rescaled\nIn AdamW: decay is separate, applied directly"},
+  ], tip:"AdamW decouples weight decay from the adaptive gradient step. This is the correct formulation and the standard optimizer for transformer training."},
+  {cat:"optimizers", title:"AMSGrad", math:[
+    {label:"modified second moment (non-decreasing)"},
+    {tex:"\\tilde{v}_t = \\max(\\tilde{v}_{t-1}, \\, v_t)"},
+    {label:"update rule"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta \\, \\frac{m_t}{\\sqrt{\\tilde{v}_t} + \\epsilon}"},
+    {text:"v\u0303_t = max of all past second moments\n    (never decreases \u2192 LR never increases)\nv_t = Adam's normal 2nd moment EMA\nm_t = 1st moment (same as Adam)\n\u03B7 = learning rate, \u03B5 = stability constant"},
+  ], tip:"AMSGrad guarantees a non-increasing learning rate by taking the max of all past second moments. Fixes Adam's convergence proof, though empirical gains are mixed."},
+  {cat:"optimizers", title:"LAMB", math:[
+    {label:"trust ratio"},
+    {tex:"r_t = \\frac{\\|\\boldsymbol{\\theta}_t\\|}{\\|u_t\\|}"},
+    {label:"update"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta \\, r_t \\, u_t"},
+    {text:"r_t = trust ratio (per-layer scaling factor)\n||\u03B8_t|| = norm of current layer weights\nu_t = Adam-style update direction\n    (m\u0302_t/(\u221Av\u0302_t+\u03B5) + \u03BB\u03B8_t)\n||u_t|| = norm of the update\n\u03B7 = global learning rate\nScales update so it's proportional to\nthe weight norm of each layer."},
+  ], tip:"LAMB (Layer-wise Adaptive Moments) scales updates per-layer using a trust ratio. Designed for large-batch training of transformers like BERT."},
+  {cat:"optimizers", title:"Second-Order Methods", math:[
+    {label:"Newton's method"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - H_t^{-1} \\nabla L(\\boldsymbol{\\theta}_t)"},
+    {tex:"H_t = \\nabla^2 L(\\boldsymbol{\\theta}_t) \\quad \\text{(Hessian)}"},
+    {label:"natural gradient"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta \\, F^{-1} \\nabla L(\\boldsymbol{\\theta}_t)"},
+    {tex:"F = \\text{Fisher Information Matrix}"},
+    {text:"H_t = Hessian: d\u00D7d matrix of 2nd derivatives\n    (captures curvature of loss surface)\nH\u207B\u00B9 = inverse Hessian (rescales gradient by\n    curvature \u2192 better step direction)\n\u2207L = gradient (1st order)\n\u2207\u00B2L = Hessian (2nd order)\nF = Fisher info matrix (curvature in\n    distribution space, not parameter space)"},
+  ], tip:"Second-order methods use curvature information for better updates but are impractical for large models. The Hessian is O(d\u00B2) to store. Approximations (K-FAC, L-BFGS) make them feasible."},
+  {cat:"optimizers", title:"Optimizer Comparison", code:`SGD:        simple, strong generalization\nMomentum:   faster convergence in ravines\nNesterov:   lookahead correction\nAdaGrad:    good for sparse gradients\nRMSProp:    fixes AdaGrad's LR decay\nAdam:       combines momentum + adaptivity\nAdamW:      correct weight decay for Adam\nAMSGrad:    fixes Adam convergence proof\nLAMB:       large-batch training\nNewton:     curvature-aware, O(d\u00B2) cost`, tip:"SGD often generalizes best. Adaptive methods (Adam, AdamW) converge faster but may find sharper minima. AdamW is the default for transformers, SGD+momentum for CNNs."},
+  {cat:"optimizers", title:"Learning Rate Schedules", math:[
+    {label:"step decay"},
+    {tex:"\\eta \\leftarrow \\eta \\times 0.1 \\;\\text{ every } N \\text{ epochs}"},
+    {label:"cosine annealing"},
+    {tex:"\\eta_t = \\eta_{\\min} + \\tfrac{1}{2}(\\eta_{\\max} - \\eta_{\\min})\\!\\left(1 + \\cos\\frac{\\pi t}{T}\\right)"},
+    {text:"\u03B7_t = learning rate at step t\n\u03B7_min = minimum LR (floor)\n\u03B7_max = maximum LR (starting value)\nt = current step\nT = total number of steps\nN = number of epochs between LR drops"},
+    {text:"Warmup + decay:\n  Linearly increase \u03B7 for first N steps,\n  then decay. Standard for transformer training."},
+  ], tip:"Learning rate scheduling often matters more than the choice of optimizer. Warmup stabilizes early training in large models. Cosine annealing is the most popular schedule."},
+  {cat:"optimizers", title:"Gradient Clipping", math:[
+    {label:"clip by norm (preferred)"},
+    {tex:"\\|\\mathbf{g}\\| = \\sqrt{\\sum_i g_i^2}"},
+    {tex:"\\text{if } \\|\\mathbf{g}\\| > \\tau: \\quad \\mathbf{g} \\leftarrow \\mathbf{g} \\cdot \\frac{\\tau}{\\|\\mathbf{g}\\|}"},
+    {tex:"\\tau \\in \\{1.0, \\; 5.0\\} \\text{ typical}"},
+    {text:"g = gradient vector (all parameters)\n||g|| = L2 norm (magnitude) of gradient\n\u03C4 = clipping threshold (max allowed norm)\n\u03C4/||g|| = scaling factor (< 1 when clipping)\nDirection preserved, only magnitude reduced."},
+  ], tip:"Gradient clipping prevents exploding gradients. Clip by norm preserves gradient direction, which is better than clip by value. Essential for RNN and transformer training."},
+  {cat:"optimizers", title:"L-Smoothness & Strong Convexity", math:[
+    {label:"L-smoothness"},
+    {tex:"\\|\\nabla f(x) - \\nabla f(y)\\| \\leq L\\,\\|x - y\\|"},
+    {label:"quadratic upper bound"},
+    {tex:"f(y) \\leq f(x) + \\langle \\nabla f(x),\\, y-x \\rangle + \\frac{L}{2}\\|y-x\\|^2"},
+    {label:"\u03BC-strong convexity"},
+    {tex:"f(y) \\geq f(x) + \\langle \\nabla f(x),\\, y-x \\rangle + \\frac{\\mu}{2}\\|y-x\\|^2"},
+    {text:"L = Lipschitz constant of the gradient\n    (max curvature, upper bound)\n\u03BC = strong convexity constant (min curvature,\n    lower bound, guarantees unique minimum)\nL/\u03BC = condition number (\u03BA): higher = harder\n    to optimize, slower convergence\n\u27E8\u2207f, y\u2212x\u27E9 = directional derivative (dot product)"},
+  ], tip:"L-smoothness bounds curvature from above (gradients don't change too fast). Strong convexity bounds it from below (unique minimizer). The condition number L/\u03BC determines convergence speed."},
+  {cat:"optimizers", title:"Implicit Bias of Gradient Descent", math:[
+    {label:"overparameterized linear regression"},
+    {tex:"\\min_{\\boldsymbol{\\theta}} \\|X\\boldsymbol{\\theta} - y\\|^2"},
+    {label:"GD converges to the minimum-norm solution"},
+    {tex:"\\boldsymbol{\\theta}^* = \\arg\\min_{\\boldsymbol{\\theta}} \\|\\boldsymbol{\\theta}\\|_2 \\quad \\text{s.t. } X\\boldsymbol{\\theta} = y"},
+    {text:"X = data matrix (samples \u00D7 features)\n\u03B8 = parameters, y = targets\n||X\u03B8 \u2212 y||\u00B2 = squared error loss\n\u03B8* = solution GD converges to\n||\u03B8||_2 = Euclidean norm (simplicity measure)\ns.t. = subject to (constraint: zero loss)\nOverparameterized: more params than samples,\nso many \u03B8 achieve zero loss. GD picks\nthe smallest-norm one automatically."},
+  ], tip:"Implicit bias explains why overparameterized models generalize: the optimization algorithm itself selects simpler solutions, not just the loss landscape."},
+  {cat:"optimizers", title:"Why SGD Generalizes Better", math:[
+    {label:"SGD noise covariance"},
+    {tex:"\\mathbb{E}[\\xi_t \\xi_t^T] = \\frac{1}{B}\\,\\Sigma(\\boldsymbol{\\theta})"},
+    {label:"noise helps"},
+    {text:"\u2022 Escape sharp minima\n\u2022 Prefer flatter regions (better generalization)\n\u2022 Acts as implicit regularizer"},
+    {label:"Adam rescales coordinates"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta\\, D_t^{-1} g_t"},
+    {text:"\u03BE_t = gradient noise (difference between\n    mini-batch and full gradient)\nB = batch size (larger \u2192 less noise)\n\u03A3(\u03B8) = covariance of per-sample gradients\nD_t = Adam's diagonal scaling matrix\nD_t\u207B\u00B9g_t = rescaled gradient (distorts the\n    noise geometry, weakening regularization)"},
+  ], tip:"SGD's isotropic gradient noise encourages flat minima. Adam's coordinate-wise rescaling distorts this geometry, which can lead to sharper minima and worse generalization."},
+  {cat:"optimizers", title:"Geometry of Optimization", math:[
+    {label:"general proximal view"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\arg\\min_{\\boldsymbol{\\theta}} \\left\\{ \\langle g_t, \\boldsymbol{\\theta} \\rangle + \\frac{1}{2\\eta} \\|\\boldsymbol{\\theta} - \\boldsymbol{\\theta}_t\\|_{M_t}^2 \\right\\}"},
+    {label:"steepest descent under metric M_t"},
+    {tex:"\\text{SGD: } M_t = I"},
+    {tex:"\\text{Adam: } M_t = D_t \\quad \\text{(diagonal)}"},
+    {tex:"\\text{Natural Gradient: } M_t = F_t \\quad \\text{(Fisher)}"},
+    {text:"\u27E8g_t, \u03B8\u27E9 = linear approximation of loss\n||\u03B8 \u2212 \u03B8_t||\u00B2_M = distance in metric M_t\n    (\"don't move too far from current point\")\nM_t = metric tensor defining \"distance\"\nI = identity (Euclidean, all dims equal)\nD_t = diagonal (per-param adaptive scaling)\nF_t = Fisher (distribution-space distance)"},
+  ], tip:"Every optimizer is steepest descent under some metric. SGD uses Euclidean distance, Adam uses a diagonal metric, natural gradient uses the Fisher information metric."},
+  {cat:"optimizers", title:"Natural Gradient (Deep Dive)", math:[
+    {label:"Fisher Information Matrix"},
+    {tex:"F(\\boldsymbol{\\theta}) = \\mathbb{E}\\!\\left[ \\nabla \\log p(x;\\boldsymbol{\\theta})\\, \\nabla \\log p(x;\\boldsymbol{\\theta})^T \\right]"},
+    {label:"update"},
+    {tex:"\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta\\, F^{-1} \\nabla f"},
+    {text:"F(\u03B8) = Fisher Information Matrix\np(x;\u03B8) = model's probability distribution\n\u2207log p = score function (gradient of log-likelihood)\nF = E[score \u00D7 score\u1D40] (outer product average)\nF\u207B\u00B9\u2207f = natural gradient direction\n    (steepest descent in KL-divergence space)"},
+    {text:"\u2022 Invariant to reparameterization\n\u2022 Uses information geometry\n\u2022 Better conditioning for probabilistic models\n\u2022 K-FAC approximates F for practical use"},
+  ], tip:"Natural gradient follows the steepest descent direction in the space of probability distributions, not parameter space. This makes it invariant to how the model is parameterized."},
+  {cat:"optimizers", title:"Large Batch Optimization", math:[
+    {label:"noise scale"},
+    {tex:"\\text{noise} \\approx \\frac{\\eta}{B}"},
+    {label:"as batch size B increases"},
+    {text:"\u2022 Gradient noise decreases\n\u2022 Implicit regularization weakens\n\u2022 Generalization gap increases\n\u2022 Sharp minima become more likely"},
+    {label:"linear scaling rule"},
+    {tex:"\\eta \\propto B \\quad \\text{(with warmup)}"},
+    {text:"\u03B7 = learning rate\nB = batch size (samples per gradient step)\n\u03B7/B = effective noise scale (ratio controls\n    how noisy the gradient estimate is)\n\u03B7 \u221D B = when doubling batch, double LR too\nWarmup = start with small \u03B7, ramp up slowly\n    to avoid instability at large LR"},
+  ], tip:"Larger batches reduce noise, which hurts generalization. The linear scaling rule (scale LR with batch size) plus warmup partially compensates. LAMB was designed specifically for this regime."},
+  {cat:"optimizers", title:"Saddle Points in Deep Networks", math:[
+    {label:"Hessian spectrum at a critical point"},
+    {tex:"H = \\nabla^2 f(\\boldsymbol{\\theta})"},
+    {text:"Deep networks have many saddle points\n(mixed positive/negative eigenvalues) and\nvery few true local minima.\n\nThe Hessian has many near-zero eigenvalues."},
+    {label:"Hessian-vector product (scalable)"},
+    {tex:"Hv = \\nabla(\\nabla f \\cdot v)"},
+    {text:"H = Hessian matrix (\u2207\u00B2f, 2nd derivatives)\nv = arbitrary direction vector\nHv = curvature in direction v (computed\n    via autodiff, no need to store H)\nEigenvalues of H at a critical point:\n  all > 0 \u2192 local minimum\n  all < 0 \u2192 local maximum\n  mixed \u2192 saddle point"},
+  ], tip:"Saddle points, not local minima, are the main obstacle in deep learning optimization. SGD's noise helps escape them. The Hessian-vector product enables curvature analysis without storing the full Hessian."},
+  {cat:"optimizers", title:"Why Can Adam Diverge?", math:[
+    {label:"adaptive denominator"},
+    {tex:"\\text{effective step} \\propto \\frac{1}{\\sqrt{v_t}}"},
+    {text:"If v_t decreases too fast, effective step\nsizes do not decay \u2192 violates convergence\nconditions even in convex problems."},
+    {label:"AMSGrad fix: enforce monotonic growth"},
+    {tex:"\\tilde{v}_t = \\max(\\tilde{v}_{t-1},\\, v_t)"},
+    {text:"v_t = 2nd moment EMA (tracks gradient scale)\n1/\u221Av_t = effective LR multiplier\n    (smaller v_t \u2192 larger effective step)\nEMA can forget large past gradients \u2192\n    v_t shrinks \u2192 effective LR grows\nv\u0303_t = AMSGrad's fix: max over all v_t\n    (monotonic, never shrinks \u2192 LR bounded)"},
+  ], tip:"Adam's exponential moving average can 'forget' large past gradients, causing the effective learning rate to increase. AMSGrad prevents this with a monotonic second-moment estimate."},
 
   // === REGULARIZATION ===
   {cat:"regularization", title:"Overfitting vs Underfitting", code:`Underfitting (high bias):\n  Train loss: HIGH    Val loss: HIGH\n  Model too simple for the data\n\nOverfitting (high variance):\n  Train loss: LOW     Val loss: HIGH\n  Model memorized training data\n\nGood fit:\n  Train loss: LOW     Val loss: LOW`, tip:"If val loss starts increasing while train loss keeps decreasing, you're overfitting. Regularization helps close this gap."},
-  {cat:"regularization", title:"Dropout", code:`Training:\n  Randomly zero out neurons with prob p\n  Scale remaining by 1/(1-p)\n\n  h = [0.5, 0, 0.3, 0, 0.8]  (p=0.5)\n       kept  off kept off kept\n\nInference:\n  Use all neurons (no dropout)\n  Outputs are already correctly scaled`, tip:"Dropout prevents co-adaptation of neurons. Typical p=0.1-0.5. Apply to hidden layers, not output. Acts like an ensemble."},
-  {cat:"regularization", title:"L1 and L2 Regularization", code:`L2 (weight decay):\n  Loss = Loss + lambda * sum(W^2)\n  Pushes weights toward zero (small)\n  Smooth penalty\n\nL1 (lasso):\n  Loss = Loss + lambda * sum(|W|)\n  Pushes some weights to EXACTLY zero\n  Produces sparse models`, tip:"L2 makes weights small, L1 makes weights sparse. L2 (weight decay) is far more common in deep learning."},
-  {cat:"regularization", title:"Batch Normalization", code:`# For each mini-batch:\nmu = mean(x, axis=0)\nsigma2 = var(x, axis=0)\nx_norm = (x - mu) / sqrt(sigma2 + eps)\nout = gamma * x_norm + beta\n\ngamma, beta = learnable parameters\n\nPlacement: usually before activation`, tip:"BatchNorm normalizes layer inputs, reducing internal covariate shift. Allows higher learning rates and acts as mild regularization."},
-  {cat:"regularization", title:"Layer Normalization", code:`# BatchNorm: normalize across batch\n# LayerNorm: normalize across features\n\nBatchNorm: mean/var over (N,)    per feature\nLayerNorm: mean/var over (D,)    per sample\n\nLayerNorm works with any batch size.\nPreferred for transformers and RNNs.`, tip:"LayerNorm normalizes across features for each sample independently. It doesn't depend on batch statistics, making it ideal for transformers."},
+  {cat:"regularization", title:"Dropout", math:[
+    {label:"training \u2014 mask with probability p"},
+    {tex:"\\tilde{h}_i = \\frac{m_i}{1-p} \\cdot h_i, \\quad m_i \\sim \\text{Bernoulli}(1-p)"},
+    {label:"inference \u2014 use all neurons, no scaling needed"},
+    {text:"Typical p = 0.1\u20130.5\nApply to hidden layers, not output.\nActs like an ensemble of subnetworks."},
+  ], tip:"Dropout prevents co-adaptation of neurons. Typical p=0.1-0.5. Apply to hidden layers, not output. Acts like an ensemble."},
+  {cat:"regularization", title:"L1 and L2 Regularization", math:[
+    {label:"L2 (weight decay)"},
+    {tex:"\\mathcal{L}_{\\text{reg}} = \\mathcal{L} + \\lambda \\sum_i W_i^2"},
+    {text:"Pushes weights toward zero (small), smooth penalty"},
+    {label:"L1 (lasso)"},
+    {tex:"\\mathcal{L}_{\\text{reg}} = \\mathcal{L} + \\lambda \\sum_i |W_i|"},
+    {text:"Pushes some weights to EXACTLY zero (sparse)"},
+  ], tip:"L2 makes weights small, L1 makes weights sparse. L2 (weight decay) is far more common in deep learning."},
+  {cat:"regularization", title:"Batch Normalization", math:[
+    {tex:"\\mu = \\frac{1}{m}\\sum_{i=1}^{m} x_i, \\quad \\sigma^2 = \\frac{1}{m}\\sum_{i=1}^{m}(x_i - \\mu)^2"},
+    {tex:"\\hat{x}_i = \\frac{x_i - \\mu}{\\sqrt{\\sigma^2 + \\epsilon}}"},
+    {tex:"y_i = \\gamma\\,\\hat{x}_i + \\beta"},
+    {label:"\u03B3, \u03B2 are learnable parameters"},
+  ], tip:"BatchNorm normalizes layer inputs, reducing internal covariate shift. Allows higher learning rates and acts as mild regularization."},
+  {cat:"regularization", title:"Layer Normalization", math:[
+    {label:"BatchNorm: normalize across batch (N) per feature"},
+    {label:"LayerNorm: normalize across features (D) per sample"},
+    {tex:"\\hat{x}_i = \\frac{x_i - \\mu_D}{\\sqrt{\\sigma_D^2 + \\epsilon}}, \\quad \\mu_D = \\frac{1}{D}\\sum_{j=1}^{D} x_j"},
+    {text:"LayerNorm works with any batch size.\nPreferred for transformers and RNNs."},
+  ], tip:"LayerNorm normalizes across features for each sample independently. It doesn't depend on batch statistics, making it ideal for transformers."},
   {cat:"regularization", title:"Early Stopping", code:`best_val_loss = infinity\npatience = 10\nwait = 0\n\nfor epoch in range(max_epochs):\n    train(model)\n    val_loss = evaluate(model)\n    if val_loss < best_val_loss:\n        best_val_loss = val_loss\n        save(model)\n        wait = 0\n    else:\n        wait += 1\n        if wait >= patience: break`, tip:"Early stopping prevents overfitting by halting training when validation loss stops improving. Simple, effective, and free."},
   {cat:"regularization", title:"Data Augmentation", code:`Image augmentations:\n  - Random crop, flip, rotation\n  - Color jitter, brightness\n  - Cutout, Mixup, CutMix\n\nText augmentations:\n  - Synonym replacement\n  - Random insertion/deletion\n  - Back-translation\n\nEffect: Artificially increases dataset size`, tip:"Data augmentation is the most effective form of regularization. It makes the model invariant to transformations that shouldn't change the label."},
 
   // === CNNs ===
-  {cat:"cnns", title:"Convolution Operation", code:`Input:    5x5       Filter:  3x3\n[1 0 1 0 1]       [1 0 1]\n[0 1 0 1 0]       [0 1 0]\n[1 0 1 0 1]       [1 0 1]\n[0 1 0 1 0]\n[1 0 1 0 1]\n\nSlide filter across input, compute\ndot product at each position.\nOutput: (5-3+1) x (5-3+1) = 3x3`, tip:"A convolution slides a small filter over the input, computing dot products. Each filter learns to detect a specific local pattern (edge, texture, etc)."},
-  {cat:"cnns", title:"Stride and Padding", code:`Output size = (N - F + 2P) / S + 1\n\nN=input, F=filter, P=padding, S=stride\n\nStride=1, No padding: output shrinks\nStride=2: output halves (downsampling)\nPadding='same': output = input size\n  P = (F-1)/2 for stride=1`, tip:"Stride controls step size (larger = smaller output). Padding preserves spatial dimensions. 'Same' padding is the most common."},
+  {cat:"cnns", title:"Convolution Operation", math:[
+    {tex:"(I * K)(i,j) = \\sum_m \\sum_n I(i+m,\\, j+n)\\,K(m,n)"},
+    {label:"slide filter K across input I, dot product at each position"},
+    {label:"output size"},
+    {tex:"O = \\frac{N - F + 2P}{S} + 1"},
+    {text:"N=input, F=filter, P=padding, S=stride"},
+  ], tip:"A convolution slides a small filter over the input, computing dot products. Each filter learns to detect a specific local pattern (edge, texture, etc)."},
+  {cat:"cnns", title:"Stride and Padding", math:[
+    {tex:"O = \\frac{N - F + 2P}{S} + 1"},
+    {label:"examples"},
+    {tex:"S=1,\\; P=0: \\quad O = N - F + 1 \\;\\text{(shrinks)}"},
+    {tex:"S=2: \\quad \\text{output halves (downsampling)}"},
+    {tex:"P = \\frac{F-1}{2},\\; S=1: \\quad O = N \\;\\text{(same padding)}"},
+  ], tip:"Stride controls step size (larger = smaller output). Padding preserves spatial dimensions. 'Same' padding is the most common."},
   {cat:"cnns", title:"Pooling Layers", code:`Max Pooling (2x2, stride 2):\n  [1 3 | 2 4]      [3  4]\n  [5 6 | 7 8]  --> [6  8]\n  Input: 4x4    Output: 2x2\n\nAverage Pooling: takes mean instead\nGlobal Avg Pool: entire feature map --> 1 value`, tip:"Pooling reduces spatial dimensions and provides translation invariance. Max pooling is most common. Global average pooling replaces fully-connected layers."},
   {cat:"cnns", title:"Feature Maps & Channels", code:`Input: H x W x 3 (RGB)\nConv layer: 32 filters of 3x3x3\nOutput: H x W x 32\n\nEach filter produces one feature map.\nMore filters = more features detected.\n\nTypical progression:\n  3 -> 64 -> 128 -> 256 -> 512`, tip:"Each convolutional filter produces one feature map (channel). Early layers detect edges, middle layers detect textures, deep layers detect objects."},
   {cat:"cnns", title:"Receptive Field", code:`Layer 1 (3x3 conv): each output sees 3x3\nLayer 2 (3x3 conv): each output sees 5x5\nLayer 3 (3x3 conv): each output sees 7x7\n\nStacking small filters:\n  3 layers of 3x3 = same receptive field\n  as 1 layer of 7x7, but fewer parameters\n  and more non-linearity`, tip:"The receptive field is the input region that affects one output neuron. Stacking small (3x3) filters is more efficient than using large filters."},
   {cat:"cnns", title:"1x1 Convolutions", code:`Input: H x W x 256\n1x1 Conv (64 filters): H x W x 64\n\nNo spatial mixing, only channel mixing.\n\nUses:\n  - Reduce/increase channel dimension\n  - Add non-linearity (cheap)\n  - Bottleneck in ResNet/Inception`, tip:"1x1 convolutions mix information across channels without changing spatial dimensions. Key building block for efficient architectures."},
-  {cat:"cnns", title:"Residual Connection (ResNet)", code:`# Standard block:\nout = F(x)           # might lose info\n\n# Residual block:\nout = F(x) + x       # skip connection\n\n# The network only needs to learn\n# the RESIDUAL: F(x) = desired - x\n# Much easier to learn small corrections\n# than full transformations`, tip:"Skip connections let gradients flow directly through the network, enabling training of very deep models (100+ layers). The key insight of ResNet."},
+  {cat:"cnns", title:"Residual Connection (ResNet)", math:[
+    {label:"standard block"},
+    {tex:"\\mathbf{y} = F(\\mathbf{x})"},
+    {label:"residual block (skip connection)"},
+    {tex:"\\mathbf{y} = F(\\mathbf{x}) + \\mathbf{x}"},
+    {text:"The network only needs to learn the\nresidual: F(x) = desired \u2212 x\nMuch easier to learn small corrections\nthan full transformations."},
+  ], tip:"Skip connections let gradients flow directly through the network, enabling training of very deep models (100+ layers). The key insight of ResNet."},
 
   // === RNNs ===
-  {cat:"rnns", title:"Vanilla RNN", code:`h_t = tanh(W_hh * h_{t-1} + W_xh * x_t + b)\ny_t = W_hy * h_t\n\nh_t: hidden state (memory)\nx_t: input at time t\ny_t: output at time t\n\nSame weights W shared across all timesteps`, tip:"RNNs process sequences by maintaining a hidden state that gets updated at each time step. Weight sharing across time is key."},
-  {cat:"rnns", title:"Vanishing Gradient in RNNs", code:`Gradient through time:\n  dL/dh_0 = dL/dh_T * prod(dh_t/dh_{t-1})\n\nEach step multiplies by W_hh.\nIf max eigenvalue < 1: vanishing\nIf max eigenvalue > 1: exploding\n\nVanilla RNNs struggle with sequences\nlonger than ~10-20 steps.`, tip:"RNNs have trouble learning long-range dependencies because gradients vanish or explode when backpropagated through many time steps."},
-  {cat:"rnns", title:"LSTM (Long Short-Term Memory)", code:`f_t = sigmoid(W_f*[h_{t-1}, x_t] + b_f)  # forget\ni_t = sigmoid(W_i*[h_{t-1}, x_t] + b_i)  # input\no_t = sigmoid(W_o*[h_{t-1}, x_t] + b_o)  # output\nc_t = f_t * c_{t-1} + i_t * tanh(W_c*[h_{t-1}, x_t])\nh_t = o_t * tanh(c_t)\n\n3 gates control information flow.`, tip:"LSTM solves vanishing gradients with a cell state highway and gates. Forget gate decides what to discard, input gate what to store, output gate what to expose."},
-  {cat:"rnns", title:"GRU (Gated Recurrent Unit)", code:`r_t = sigmoid(W_r*[h_{t-1}, x_t])  # reset\nz_t = sigmoid(W_z*[h_{t-1}, x_t])  # update\nh_t = z_t * h_{t-1} +\n      (1-z_t) * tanh(W*[r_t*h_{t-1}, x_t])\n\n2 gates (vs LSTM's 3): simpler, faster\nPerformance similar to LSTM in practice`, tip:"GRU is a simplified LSTM with 2 gates instead of 3 and no separate cell state. Fewer parameters, similar performance."},
+  {cat:"rnns", title:"Vanilla RNN", math:[
+    {tex:"\\mathbf{h}_t = \\tanh(\\mathbf{W}_{hh}\\,\\mathbf{h}_{t-1} + \\mathbf{W}_{xh}\\,\\mathbf{x}_t + \\mathbf{b})"},
+    {tex:"\\mathbf{y}_t = \\mathbf{W}_{hy}\\,\\mathbf{h}_t"},
+    {label:"same weights W shared across all timesteps"},
+  ], tip:"RNNs process sequences by maintaining a hidden state that gets updated at each time step. Weight sharing across time is key."},
+  {cat:"rnns", title:"Vanishing Gradient in RNNs", math:[
+    {tex:"\\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{h}_0} = \\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{h}_T} \\prod_{t=1}^{T} \\frac{\\partial \\mathbf{h}_t}{\\partial \\mathbf{h}_{t-1}}"},
+    {label:"each step multiplies by W_hh"},
+    {text:"max eigenvalue < 1 \u2192 vanishing\nmax eigenvalue > 1 \u2192 exploding\n\nVanilla RNNs struggle with sequences\nlonger than ~10\u201320 steps."},
+  ], tip:"RNNs have trouble learning long-range dependencies because gradients vanish or explode when backpropagated through many time steps."},
+  {cat:"rnns", title:"LSTM (Long Short-Term Memory)", math:[
+    {tex:"\\mathbf{f}_t = \\sigma(\\mathbf{W}_f[\\mathbf{h}_{t-1}, \\mathbf{x}_t] + \\mathbf{b}_f)"},
+    {tex:"\\mathbf{i}_t = \\sigma(\\mathbf{W}_i[\\mathbf{h}_{t-1}, \\mathbf{x}_t] + \\mathbf{b}_i)"},
+    {tex:"\\mathbf{o}_t = \\sigma(\\mathbf{W}_o[\\mathbf{h}_{t-1}, \\mathbf{x}_t] + \\mathbf{b}_o)"},
+    {tex:"\\mathbf{c}_t = \\mathbf{f}_t \\odot \\mathbf{c}_{t-1} + \\mathbf{i}_t \\odot \\tanh(\\mathbf{W}_c[\\mathbf{h}_{t-1}, \\mathbf{x}_t])"},
+    {tex:"\\mathbf{h}_t = \\mathbf{o}_t \\odot \\tanh(\\mathbf{c}_t)"},
+  ], tip:"LSTM solves vanishing gradients with a cell state highway and gates. Forget gate decides what to discard, input gate what to store, output gate what to expose."},
+  {cat:"rnns", title:"GRU (Gated Recurrent Unit)", math:[
+    {tex:"\\mathbf{r}_t = \\sigma(\\mathbf{W}_r[\\mathbf{h}_{t-1}, \\mathbf{x}_t])"},
+    {tex:"\\mathbf{z}_t = \\sigma(\\mathbf{W}_z[\\mathbf{h}_{t-1}, \\mathbf{x}_t])"},
+    {tex:"\\mathbf{h}_t = \\mathbf{z}_t \\odot \\mathbf{h}_{t-1} + (1-\\mathbf{z}_t) \\odot \\tanh(\\mathbf{W}[\\mathbf{r}_t \\odot \\mathbf{h}_{t-1}, \\mathbf{x}_t])"},
+    {text:"2 gates (vs LSTM's 3): simpler, faster\nPerformance similar to LSTM in practice"},
+  ], tip:"GRU is a simplified LSTM with 2 gates instead of 3 and no separate cell state. Fewer parameters, similar performance."},
   {cat:"rnns", title:"Bidirectional RNN", code:`Forward:   h1 -> h2 -> h3 -> h4\n              \\     \\     \\     \\\nInput:     x1    x2    x3    x4\n              /     /     /     /\nBackward:  h4 <- h3 <- h2 <- h1\n\nOutput at each step = concat(fwd, bwd)\n\nSees both past and future context.`, tip:"Bidirectional RNNs process the sequence in both directions. Essential when full context is available (e.g., text classification, NER), not for autoregressive generation."},
   {cat:"rnns", title:"Sequence-to-Sequence", code:`Encoder:   x1 x2 x3 --> [h]\n                         |\nDecoder:              [h] --> y1 y2 y3\n\nEncoder compresses input into context.\nDecoder generates output from context.\n\nProblem: single vector bottleneck\nSolution: attention mechanism`, tip:"Seq2seq architecture encodes input to a fixed vector, then decodes to output. The fixed-size bottleneck limits performance on long sequences."},
 
   // === TRANSFORMERS ===
-  {cat:"transformers", title:"Self-Attention", code:`Attention(Q, K, V) = softmax(Q*K^T / sqrt(d_k)) * V\n\nQ = query  (what am I looking for?)\nK = key    (what do I contain?)\nV = value  (what do I provide?)\n\nEach token attends to ALL other tokens.\nAttention weights = how much to focus.`, tip:"Self-attention lets every token in a sequence look at every other token directly. This is how transformers capture long-range dependencies without recurrence."},
-  {cat:"transformers", title:"Scaled Dot-Product Attention", code:`scores = Q @ K.T / sqrt(d_k)\n\nWhy scale by sqrt(d_k)?\n  Large d_k -> large dot products\n  -> softmax saturates\n  -> tiny gradients\n\nd_k = 64 (typical)\nsqrt(64) = 8\nDividing keeps variance ~ 1`, tip:"Without scaling, dot products grow with dimension size, pushing softmax into saturated regions with near-zero gradients."},
-  {cat:"transformers", title:"Multi-Head Attention", code:`MultiHead(Q, K, V):\n  head_i = Attention(Q*W_i^Q, K*W_i^K, V*W_i^V)\n  output = Concat(head_1, ..., head_h) * W^O\n\nd_model = 512, h = 8 heads\nd_k = d_v = 512/8 = 64 per head\n\nEach head learns different patterns.`, tip:"Multiple attention heads let the model attend to different relationship types simultaneously (syntax, semantics, position, etc)."},
-  {cat:"transformers", title:"Positional Encoding", code:`PE(pos, 2i)   = sin(pos / 10000^(2i/d))\nPE(pos, 2i+1) = cos(pos / 10000^(2i/d))\n\nInput = token_embedding + position_encoding\n\nSelf-attention is permutation invariant.\nWithout PE, \"cat sat mat\" = \"mat cat sat\"`, tip:"Since self-attention has no notion of order, positional encodings inject sequence position information. Without them, the model can't distinguish word order."},
+  {cat:"transformers", title:"Self-Attention", math:[
+    {tex:"\\text{Attention}(Q, K, V) = \\text{softmax}\\!\\left(\\frac{QK^T}{\\sqrt{d_k}}\\right) V"},
+    {label:"where"},
+    {tex:"Q = \\text{query}, \\quad K = \\text{key}, \\quad V = \\text{value}"},
+    {text:"Each token attends to ALL other tokens.\nAttention weights = how much to focus."},
+  ], tip:"Self-attention lets every token in a sequence look at every other token directly. This is how transformers capture long-range dependencies without recurrence."},
+  {cat:"transformers", title:"Scaled Dot-Product Attention", math:[
+    {tex:"\\text{scores} = \\frac{QK^T}{\\sqrt{d_k}}"},
+    {label:"why scale?"},
+    {tex:"\\text{Var}(q \\cdot k) = d_k \\quad \\Rightarrow \\quad \\text{divide by } \\sqrt{d_k}"},
+    {tex:"d_k = 64 \\text{ (typical)}, \\quad \\sqrt{64} = 8"},
+    {text:"Without scaling, large dot products push\nsoftmax into saturation \u2192 tiny gradients."},
+  ], tip:"Without scaling, dot products grow with dimension size, pushing softmax into saturated regions with near-zero gradients."},
+  {cat:"transformers", title:"Multi-Head Attention", math:[
+    {tex:"\\text{head}_i = \\text{Attention}(QW_i^Q,\\; KW_i^K,\\; VW_i^V)"},
+    {tex:"\\text{MultiHead} = \\text{Concat}(\\text{head}_1, \\ldots, \\text{head}_h)\\,W^O"},
+    {label:"typical dimensions"},
+    {tex:"d_{\\text{model}} = 512, \\quad h = 8, \\quad d_k = d_v = 64"},
+  ], tip:"Multiple attention heads let the model attend to different relationship types simultaneously (syntax, semantics, position, etc)."},
+  {cat:"transformers", title:"Positional Encoding", math:[
+    {tex:"PE_{(pos, 2i)} = \\sin\\!\\left(\\frac{pos}{10000^{2i/d}}\\right)"},
+    {tex:"PE_{(pos, 2i+1)} = \\cos\\!\\left(\\frac{pos}{10000^{2i/d}}\\right)"},
+    {tex:"\\text{input} = \\text{token\\_embedding} + PE"},
+    {text:"Self-attention is permutation invariant.\nWithout PE, \"cat sat mat\" = \"mat cat sat\""},
+  ], tip:"Since self-attention has no notion of order, positional encodings inject sequence position information. Without them, the model can't distinguish word order."},
   {cat:"transformers", title:"Transformer Block", code:`         x\n         |\n  [Multi-Head Attention]\n         |\n  [Add & LayerNorm]  <-- residual from x\n         |\n  [Feed-Forward (MLP)]\n         |\n  [Add & LayerNorm]  <-- residual\n         |\n       output\n\nStack N=6 to N=12 blocks.`, tip:"Each transformer block has attention + feed-forward with residual connections and layer normalization. The architecture is surprisingly simple."},
   {cat:"transformers", title:"Encoder vs Decoder", code:`Encoder (e.g. BERT):\n  - Bidirectional self-attention\n  - Sees all tokens at once\n  - Good for: classification, NER\n\nDecoder (e.g. GPT):\n  - Causal (masked) self-attention\n  - Only sees past tokens\n  - Good for: generation\n\nEncoder-Decoder (e.g. T5):\n  - Translation, summarization`, tip:"Encoders see the full sequence (bidirectional), decoders only see the past (autoregressive). The choice depends on the task."},
-  {cat:"transformers", title:"Causal Masking", code:`Attention matrix (4 tokens):\n     t1   t2   t3   t4\nt1 [ ok  -inf -inf -inf]\nt2 [ ok   ok  -inf -inf]\nt3 [ ok   ok   ok  -inf]\nt4 [ ok   ok   ok   ok ]\n\n-inf before softmax = 0 attention weight\nPrevents looking at future tokens.`, tip:"Causal masking sets future positions to -infinity before softmax, ensuring each token can only attend to previous tokens. Essential for autoregressive generation."},
-  {cat:"transformers", title:"Feed-Forward Network (MLP)", code:`FFN(x) = GELU(x * W1 + b1) * W2 + b2\n\nd_model = 512\nd_ff = 2048 (4x expansion)\n\nExpand -> activate -> project back\n\nApplied independently to each position.\nWhere the \"thinking\" happens.`, tip:"The FFN expands dimensionality (typically 4x), applies non-linearity, then projects back. It's applied per-position and accounts for most transformer parameters."},
-  {cat:"transformers", title:"Why Transformers Win", code:`RNN:  O(n) sequential steps\n      Can't parallelize across time\n      Gradient path length: O(n)\n\nTransformer:\n      O(1) path between any two tokens\n      Fully parallelizable (all tokens at once)\n      O(n^2) memory for attention\n\nTradeoff: more memory, but much faster.`, tip:"Transformers replaced RNNs because they parallelize training and connect any two positions in O(1) layers. The O(n^2) attention cost is the main limitation."},
+  {cat:"transformers", title:"Causal Masking", math:[
+    {label:"attention matrix (4 tokens)"},
+    {tex:"M = \\begin{pmatrix} 0 & -\\infty & -\\infty & -\\infty \\\\ 0 & 0 & -\\infty & -\\infty \\\\ 0 & 0 & 0 & -\\infty \\\\ 0 & 0 & 0 & 0 \\end{pmatrix}"},
+    {tex:"\\text{Attn} = \\text{softmax}\\!\\left(\\frac{QK^T}{\\sqrt{d_k}} + M\\right) V"},
+    {text:"-\u221E before softmax = 0 attention weight\nPrevents looking at future tokens."},
+  ], tip:"Causal masking sets future positions to -infinity before softmax, ensuring each token can only attend to previous tokens. Essential for autoregressive generation."},
+  {cat:"transformers", title:"Feed-Forward Network (MLP)", math:[
+    {tex:"\\text{FFN}(\\mathbf{x}) = \\text{GELU}(\\mathbf{x}\\mathbf{W}_1 + \\mathbf{b}_1)\\,\\mathbf{W}_2 + \\mathbf{b}_2"},
+    {label:"typical dimensions"},
+    {tex:"d_{\\text{model}} = 512, \\quad d_{ff} = 2048 \\;(4\\times)"},
+    {text:"Expand \u2192 activate \u2192 project back\nApplied independently to each position.\nAccounts for most transformer parameters."},
+  ], tip:"The FFN expands dimensionality (typically 4x), applies non-linearity, then projects back. It's applied per-position and accounts for most transformer parameters."},
+  {cat:"transformers", title:"Why Transformers Win", math:[
+    {label:"RNN"},
+    {tex:"O(n) \\text{ sequential steps, can't parallelize}"},
+    {label:"Transformer"},
+    {tex:"O(1) \\text{ path between any two tokens}"},
+    {tex:"O(n^2) \\text{ memory for attention matrix}"},
+    {text:"Fully parallelizable (all tokens at once).\nTradeoff: more memory, but much faster."},
+  ], tip:"Transformers replaced RNNs because they parallelize training and connect any two positions in O(1) layers. The O(n^2) attention cost is the main limitation."},
 ];
 
 const STORAGE_KEY = "flashcards_deep-learning";
+const FAV_KEY = "flashcards_deep-learning_favs";
+const NOTES_KEY = "flashcards_deep-learning_notes";
+
+function loadNotes() {
+  try { return JSON.parse(localStorage.getItem(NOTES_KEY)) || {}; } catch { return {}; }
+}
+
+function saveNote(title, text) {
+  const notes = loadNotes();
+  if (text.trim()) notes[title] = text;
+  else delete notes[title];
+  localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+}
+
+function getNote(title) {
+  return loadNotes()[title] || '';
+}
+
+function saveFavorites() {
+  localStorage.setItem(FAV_KEY, JSON.stringify([...favorites]));
+}
+
+function loadFavorites() {
+  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY)) || []); } catch { return new Set(); }
+}
+
+const favorites = loadFavorites();
+
+function toggleFavorite(title) {
+  if (favorites.has(title)) favorites.delete(title);
+  else favorites.add(title);
+  saveFavorites();
+}
 
 function saveState(cardIndex) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -343,32 +851,81 @@ function shuffle(arr) {
 }
 
 function getFiltered() {
-  let filtered = currentFilter === "all"
-    ? [...cards]
-    : cards.filter(c => c.cat === currentFilter);
+  let filtered;
+  if (currentFilter === "all") filtered = [...cards];
+  else if (currentFilter === "favorites") filtered = cards.filter(c => favorites.has(c.title));
+  else filtered = cards.filter(c => c.cat === currentFilter);
   return isShuffled ? shuffle(filtered) : filtered;
+}
+
+function escapeHtml(code) {
+  return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderMath(mathArr) {
+  return mathArr.map(item => {
+    if (item.tex) {
+      try {
+        return '<div class="math-line">' + katex.renderToString(item.tex, {displayMode: true, throwOnError: false}) + '</div>';
+      } catch(e) {
+        return '<div class="math-line" style="color:#f47067;">' + escapeHtml(item.tex) + '</div>';
+      }
+    }
+    if (item.label) return '<span class="math-label">' + escapeHtml(item.label) + '</span>';
+    if (item.text) return '<pre style="margin:8px 0;font-family:inherit;white-space:pre-wrap;color:#c9d1d9;font-size:18px;line-height:1.65;">' + escapeHtml(item.text) + '</pre>';
+    return '';
+  }).join('');
 }
 
 function renderCards() {
   const feed = document.getElementById("feed");
   const filtered = getFiltered();
-  feed.innerHTML = filtered.map((c, i) => `
+  feed.innerHTML = filtered.map((c, i) => {
+    let content;
+    if (c.math) {
+      content = '<div class="card-math">' + renderMath(c.math) + '</div>';
+    } else {
+      content = '<div class="card-code"><code>' + escapeHtml(c.code) + '</code></div>';
+    }
+    const isFav = favorites.has(c.title);
+    let bodyText = '';
+    if (c.math) {
+      bodyText = c.math.map(item => {
+        if (item.tex) return item.tex;
+        if (item.label) return item.label;
+        if (item.text) return item.text;
+        return '';
+      }).join('\n');
+    } else if (c.code) {
+      bodyText = c.code;
+    }
+    const cardContent = c.title + '\n\n' + bodyText + '\n\n' + c.tip;
+    const query = encodeURIComponent(cardContent + ' deep learning');
+    const chatPrompt = encodeURIComponent('Explain and discuss this deep learning concept in detail:\n\n' + cardContent);
+    return `
     <div class="card" data-index="${i}">
       <div class="card-inner">
-        <span class="card-tag tag-${c.cat}">${c.cat}</span>
+        <div class="card-header">
+          <span class="card-tag tag-${c.cat}">${c.cat}</span>
+          <button class="fav-btn${isFav ? ' active' : ''}" data-title="${c.title.replace(/"/g, '&quot;')}" onclick="handleFav(this)">&#x2764;</button>
+        </div>
         <h2 class="card-title">${c.title}</h2>
-        <div class="card-code"><code>${escapeHtml(c.code)}</code></div>
+        ${content}
         <p class="card-takeaway">${c.tip}</p>
+        <div class="card-links">
+          <a class="link-google" href="https://www.google.com/search?q=${query}" target="_blank" rel="noopener">&#x1F50D; Google</a>
+          <a class="link-chatgpt" href="https://chatgpt.com/?q=${chatPrompt}" target="_blank" rel="noopener">&#x1F4AC; ChatGPT</a>
+        </div>
+        <button class="card-notes-toggle${getNote(c.title) ? ' has-notes' : ''}" onclick="toggleNotes(this)">&#x1F4DD; ${getNote(c.title) ? 'My Notes' : 'Add Notes'}</button>
+        <div class="card-notes-area">
+          <textarea placeholder="Write your notes here..." data-title="${c.title.replace(/"/g, '&quot;')}" oninput="handleNoteInput(this)">${getNote(c.title).replace(/</g, '&lt;')}</textarea>
+        </div>
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
   updateCounter();
   feed.scrollTop = 0;
   saveState(0);
-}
-
-function escapeHtml(code) {
-  return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function updateCounter() {
@@ -401,25 +958,61 @@ document.getElementById("shuffleBtn").addEventListener("click", () => {
 
 document.getElementById("feed").addEventListener("scroll", updateCounter);
 
-// Initial render — restore saved state
-(function init() {
-  if (currentFilter !== "all") {
-    document.querySelectorAll(".filter-btn").forEach(b => {
-      b.classList.remove("active");
-      if (b.dataset.filter === currentFilter) b.classList.add("active");
-    });
+function toggleNotes(btn) {
+  const area = btn.nextElementSibling;
+  area.classList.toggle('open');
+  if (area.classList.contains('open')) {
+    area.querySelector('textarea').focus();
   }
-  if (isShuffled) {
-    document.getElementById("shuffleBtn").style.background = "#58a6ff";
+}
+
+function handleNoteInput(textarea) {
+  const title = textarea.dataset.title;
+  saveNote(title, textarea.value);
+  const toggle = textarea.closest('.card-inner').querySelector('.card-notes-toggle');
+  if (textarea.value.trim()) {
+    toggle.classList.add('has-notes');
+    toggle.innerHTML = '&#x1F4DD; My Notes';
+  } else {
+    toggle.classList.remove('has-notes');
+    toggle.innerHTML = '&#x1F4DD; Add Notes';
   }
-  renderCards();
-  if (saved.cardIndex > 0) {
-    const cardEls = document.getElementById("feed").querySelectorAll(".card");
-    if (cardEls[saved.cardIndex]) {
-      cardEls[saved.cardIndex].scrollIntoView();
+}
+
+function handleFav(btn) {
+  const title = btn.dataset.title;
+  toggleFavorite(title);
+  btn.classList.toggle("active");
+  // If viewing favorites and we unfavorited, re-render
+  if (currentFilter === "favorites" && !favorites.has(title)) {
+    renderCards();
+  }
+}
+
+// Wait for KaTeX to load, then render
+function initWhenReady() {
+  if (typeof katex !== 'undefined') {
+    if (currentFilter !== "all") {
+      document.querySelectorAll(".filter-btn").forEach(b => {
+        b.classList.remove("active");
+        if (b.dataset.filter === currentFilter) b.classList.add("active");
+      });
     }
+    if (isShuffled) {
+      document.getElementById("shuffleBtn").style.background = "#58a6ff";
+    }
+    renderCards();
+    if (saved.cardIndex > 0) {
+      const cardEls = document.getElementById("feed").querySelectorAll(".card");
+      if (cardEls[saved.cardIndex]) {
+        cardEls[saved.cardIndex].scrollIntoView();
+      }
+    }
+  } else {
+    setTimeout(initWhenReady, 50);
   }
-})();
+}
+initWhenReady();
 </script>
 </body>
 </html>
