@@ -89,6 +89,67 @@
 
   .shuffle-btn:hover { background: #333; }
 
+  .settings-btn {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #444;
+    background: #222;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .settings-btn:hover { background: #333; }
+
+  .settings-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .settings-overlay.open { display: flex; }
+
+  .settings-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 340px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+  .settings-card h2 {
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+  .settings-card button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    background: transparent;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .settings-card button:hover { background: #2a2a4a; border-color: #555; }
+  .settings-card button.danger { color: #e74c3c; border-color: #5c2020; }
+  .settings-card button.danger:hover { background: #3c1515; }
+  .settings-card .close-settings {
+    margin-top: 8px;
+    margin-bottom: 0;
+    color: var(--text-dim);
+    border-color: transparent;
+  }
+
   /* Card container */
   .feed {
     height: 100vh;
@@ -110,6 +171,7 @@
   }
 
   .card-inner {
+    position: relative;
     width: 100%;
     max-width: 560px;
     background: var(--card-bg);
@@ -136,6 +198,17 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
+
+  .seen-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+  }
+  .seen-dot.unseen { background: #000; }
+  .seen-dot.seen { background: #252545; }
 
   .fav-btn {
     background: none;
@@ -190,13 +263,14 @@
 
   .card-links {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     margin-top: 14px;
     padding-top: 12px;
     border-top: 1px solid #2a2a3e;
+    flex-wrap: wrap;
   }
 
-  .card-links a {
+  .card-links a, .card-links button {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -207,36 +281,15 @@
     text-decoration: none;
     transition: opacity 0.2s;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  .card-links a:hover { opacity: 0.8; }
-
-  .link-google {
-    background: #1e3a5f;
-    color: #58a6ff;
-  }
-
-  .link-chatgpt {
-    background: #1e4a3e;
-    color: #56d364;
-  }
-
-  .card-notes-toggle {
-    background: none;
+    background: #222238;
+    color: #444;
     border: none;
-    color: var(--text-dim);
-    font-size: 13px;
     cursor: pointer;
-    padding: 6px 0;
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    -webkit-tap-highlight-color: transparent;
+    opacity: 0.5;
   }
 
-  .card-notes-toggle:hover { color: var(--text); }
-  .card-notes-toggle.has-notes { color: var(--accent); }
+  .card-links a:hover, .card-links button:hover { opacity: 0.8; color: #666; }
+  .card-links button.has-notes { color: var(--accent); }
 
   .card-notes-area {
     display: none;
@@ -324,11 +377,23 @@
     <button class="filter-btn" data-filter="itertools">Itertools</button>
     <button class="filter-btn" data-filter="favorites" id="favFilterBtn">&#x2764; Favorites</button>
     <button class="shuffle-btn" id="shuffleBtn">&#x1F500; Shuffle</button>
+    <button class="settings-btn" id="settingsBtn">&#x2699; Settings</button>
   </div>
 </div>
 
 <div class="feed" id="feed"></div>
 <div class="card-counter" id="counter"></div>
+
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-card">
+    <h2>&#x2699; Settings</h2>
+    <button onclick="clearFavorites()">Clear Favorites</button>
+    <button onclick="clearNotes()">Clear Notes</button>
+    <button onclick="clearSeen()">Clear Seen Status</button>
+    <button class="danger" onclick="clearAll()">Clear Everything</button>
+    <button class="close-settings" onclick="closeSettings()">Close</button>
+  </div>
+</div>
 
 <script>
 const cards = [
@@ -415,6 +480,20 @@ const cards = [
 const STORAGE_KEY = "flashcards_python";
 const FAV_KEY = "flashcards_python_favs";
 const NOTES_KEY = "flashcards_python_notes";
+const SEEN_KEY = "flashcards_python_seen";
+
+function loadSeen() {
+  try { return JSON.parse(localStorage.getItem(SEEN_KEY)) || {}; } catch { return {}; }
+}
+function incSeen(title) {
+  const s = loadSeen();
+  s[title] = (s[title] || 0) + 1;
+  localStorage.setItem(SEEN_KEY, JSON.stringify(s));
+  return s[title];
+}
+function getSeenCount(title) {
+  return loadSeen()[title] || 0;
+}
 
 function loadNotes() {
   try { return JSON.parse(localStorage.getItem(NOTES_KEY)) || {}; } catch { return {}; }
@@ -510,13 +589,14 @@ function renderCards() {
         <div class="card-code"><code>${highlightSyntax(c.code)}</code></div>
         <p class="card-takeaway">${c.tip}</p>
         <div class="card-links">
-          <a class="link-google" href="https://www.google.com/search?q=${query}" target="_blank" rel="noopener">&#x1F50D; Google</a>
-          <a class="link-chatgpt" href="https://chatgpt.com/?q=${chatPrompt}" target="_blank" rel="noopener">&#x1F4AC; ChatGPT</a>
+          <a href="https://www.google.com/search?q=${query}" target="_blank" rel="noopener">&#x1F50D; Google</a>
+          <a href="https://chatgpt.com/?q=${chatPrompt}" target="_blank" rel="noopener">&#x1F4AC; ChatGPT</a>
+          <button class="${getNote(c.title) ? 'has-notes' : ''}" onclick="toggleNotes(this)">&#x1F4DD; ${getNote(c.title) ? 'My Notes' : 'Add Notes'}</button>
         </div>
-        <button class="card-notes-toggle${getNote(c.title) ? ' has-notes' : ''}" onclick="toggleNotes(this)">&#x1F4DD; ${getNote(c.title) ? 'My Notes' : 'Add Notes'}</button>
         <div class="card-notes-area">
           <textarea placeholder="Write your notes here..." data-title="${c.title.replace(/"/g, '&quot;')}" oninput="handleNoteInput(this)">${getNote(c.title).replace(/</g, '&lt;')}</textarea>
         </div>
+        <span class="seen-dot ${getSeenCount(c.title) >= 2 ? 'seen' : 'unseen'}" data-seen-title="${c.title.replace(/"/g, '&quot;')}"></span>
       </div>
     </div>`;
   }).join("");
@@ -541,6 +621,7 @@ function highlightSyntax(code) {
     });
 }
 
+let lastSeenIndex = -1;
 function updateCounter() {
   const feed = document.getElementById("feed");
   const cards = feed.querySelectorAll(".card");
@@ -552,10 +633,21 @@ function updateCounter() {
   });
   document.getElementById("counter").textContent = `${current} / ${total}`;
   saveState(current - 1);
+  if (current - 1 !== lastSeenIndex) {
+    lastSeenIndex = current - 1;
+    const card = cards[lastSeenIndex];
+    if (card) {
+      const dot = card.querySelector('.seen-dot');
+      if (dot) {
+        const count = incSeen(dot.dataset.seenTitle);
+        if (count >= 2) { dot.classList.remove('unseen'); dot.classList.add('seen'); }
+      }
+    }
+  }
 }
 
 function toggleNotes(btn) {
-  const area = btn.nextElementSibling;
+  const area = btn.closest('.card-inner').querySelector('.card-notes-area');
   area.classList.toggle('open');
   if (area.classList.contains('open')) {
     area.querySelector('textarea').focus();
@@ -565,7 +657,7 @@ function toggleNotes(btn) {
 function handleNoteInput(textarea) {
   const title = textarea.dataset.title;
   saveNote(title, textarea.value);
-  const toggle = textarea.closest('.card-inner').querySelector('.card-notes-toggle');
+  const toggle = textarea.closest('.card-inner').querySelector('.card-links button');
   if (textarea.value.trim()) {
     toggle.classList.add('has-notes');
     toggle.innerHTML = '&#x1F4DD; My Notes';
@@ -582,6 +674,51 @@ function handleFav(btn) {
   if (currentFilter === "favorites" && !favorites.has(title)) {
     renderCards();
   }
+}
+
+// Settings
+document.getElementById("settingsBtn").addEventListener("click", () => {
+  document.getElementById("settingsOverlay").classList.add("open");
+});
+document.getElementById("settingsOverlay").addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) closeSettings();
+});
+function closeSettings() {
+  document.getElementById("settingsOverlay").classList.remove("open");
+}
+function clearFavorites() {
+  localStorage.removeItem(FAV_KEY);
+  favorites.clear();
+  renderCards();
+  closeSettings();
+}
+function clearNotes() {
+  localStorage.removeItem(NOTES_KEY);
+  renderCards();
+  closeSettings();
+}
+function clearSeen() {
+  localStorage.removeItem(SEEN_KEY);
+  lastSeenIndex = -1;
+  renderCards();
+  closeSettings();
+}
+function clearAll() {
+  localStorage.removeItem(FAV_KEY);
+  localStorage.removeItem(NOTES_KEY);
+  localStorage.removeItem(SEEN_KEY);
+  localStorage.removeItem(STORAGE_KEY);
+  favorites.clear();
+  lastSeenIndex = -1;
+  currentFilter = "all";
+  isShuffled = false;
+  document.querySelectorAll(".filter-btn").forEach(b => {
+    b.classList.remove("active");
+    if (b.dataset.filter === "all") b.classList.add("active");
+  });
+  document.getElementById("shuffleBtn").style.background = "#222";
+  renderCards();
+  closeSettings();
 }
 
 // Filter buttons
